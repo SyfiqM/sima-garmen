@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Support\Audit;
 use Illuminate\Auth\Events\Lockout;
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -12,52 +12,56 @@ use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
     }
 
-    /**
-     * Attempt to authenticate the request's credentials.
-     *
-     * @throws ValidationException
-     */
+    public function attributes(): array
+    {
+        return [
+            'login' => 'username atau email',
+            'password' => 'password',
+        ];
+    }
+
+    /** Masuk dengan username ATAU email. Hanya akun aktif yang bisa masuk. */
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $login = trim((string) $this->input('login'));
+        $field = filter_var($login, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        $berhasil = Auth::attempt([
+            $field => $login,
+            'password' => (string) $this->input('password'),
+            'is_active' => true,
+        ], $this->boolean('remember'));
+
+        if (! $berhasil) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'login' => 'Username/email atau password salah, atau akun tidak aktif.',
             ]);
         }
 
         RateLimiter::clear($this->throttleKey());
+
+        $user = Auth::user();
+        $user->forceFill(['last_login_at' => now()])->save();
+        Audit::log('auth.login', $user);
     }
 
-    /**
-     * Ensure the login request is not rate limited.
-     *
-     * @throws ValidationException
-     */
     public function ensureIsNotRateLimited(): void
     {
         if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
@@ -66,21 +70,15 @@ class LoginRequest extends FormRequest
 
         event(new Lockout($this));
 
-        $seconds = RateLimiter::availableIn($this->throttleKey());
+        $detik = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
-                'seconds' => $seconds,
-                'minutes' => ceil($seconds / 60),
-            ]),
+            'login' => "Terlalu banyak percobaan masuk. Coba lagi dalam {$detik} detik.",
         ]);
     }
 
-    /**
-     * Get the rate limiting throttle key for the request.
-     */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        return Str::transliterate(Str::lower((string) $this->input('login')) . '|' . $this->ip());
     }
 }
