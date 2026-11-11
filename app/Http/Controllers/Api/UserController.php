@@ -14,8 +14,8 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        if ($request->user()->role !== 'admin') abort(403);
-        
+        if (!$request->user()->hasRole('admin')) abort(403);
+
         $query = User::with('tahap'); // Jika ada relasi tahap
         if ($request->search) $query->where('name', 'like', '%' . $request->search . '%')->orWhere('username', 'like', '%' . $request->search . '%');
         if ($request->has('role')) $query->where('role', $request->role);
@@ -38,7 +38,7 @@ class UserController extends Controller
 
     public function show(Request $request, $id)
     {
-        if ($request->user()->role !== 'admin') abort(403);
+        if (!$request->user()->hasRole('admin')) abort(403);
         return response()->json(['data' => User::findOrFail($id)]);
     }
 
@@ -66,7 +66,7 @@ class UserController extends Controller
 
     public function destroy(Request $request, $id)
     {
-        if ($request->user()->role !== 'admin') abort(403);
+        if (!$request->user()->hasRole('admin')) abort(403);
         $user = User::findOrFail($id);
 
         if ($user->id === $request->user()->id) {
@@ -81,7 +81,7 @@ class UserController extends Controller
 
     public function resetPassword(Request $request, $id)
     {
-        if ($request->user()->role !== 'admin') abort(403);
+        if (!$request->user()->hasRole('admin')) abort(403);
         $request->validate(['password' => 'required|string|min:8']);
         
         $user = User::findOrFail($id);
@@ -93,7 +93,8 @@ class UserController extends Controller
 
     private function cekAdminTerakhir($user, $newRole, $newActive)
     {
-        if ($user->role === 'admin' && ($newRole !== 'admin' || !$newActive)) {
+        $currentRole = $user->role instanceof \BackedEnum ? $user->role->value : $user->role;
+        if ($currentRole === 'admin' && ($newRole !== 'admin' || !$newActive)) {
             $adminAktifLain = User::where('role', 'admin')->where('is_active', 1)->where('id', '!=', $user->id)->count();
             if ($adminAktifLain === 0) {
                 throw new BusinessRuleException('Tidak dapat mengubah/menonaktifkan admin terakhir di sistem.', 'STATUS_TIDAK_VALID', 409);

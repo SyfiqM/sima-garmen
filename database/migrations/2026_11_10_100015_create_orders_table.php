@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('alasan_pembatalan', 255)->nullable();
             $table->boolean('ditutup_kurang')->default(false);
             $table->string('alasan_tutup_kurang', 255)->nullable();
-            $table->foreignId('dibuat_oleh')->constrained('users');
+            $table->foreignId('dibuat_oleh')->nullable()->constrained('users');
             $table->dateTime('diajukan_at')->nullable();
             $table->foreignId('disetujui_oleh')->nullable()->constrained('users');
             $table->dateTime('disetujui_at')->nullable();

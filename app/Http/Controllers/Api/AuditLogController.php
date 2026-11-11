@@ -10,7 +10,7 @@ class AuditLogController extends Controller
 {
     public function index(Request $request)
     {
-        if (!in_array($request->user()->role, ['admin', 'manajer'])) abort(403);
+        if (!$request->user()->hasRole('admin', 'manajer')) abort(403);
 
         $query = DB::table('activity_log')
                     ->leftJoin('users', 'activity_log.user_id', '=', 'users.id')

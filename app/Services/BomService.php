@@ -4,11 +4,70 @@ namespace App\Services;
 
 use App\Models\BOM;
 use App\Models\Bahan;
+use App\Models\Order; // Tambahan untuk fungsi hitungKebutuhan
 use App\Exceptions\BusinessRuleException;
 use Illuminate\Support\Facades\DB;
 
 class BomService
 {
+    /**
+     * Resolusi baris BOM per item order dan hitung kebutuhan total per (bahan_id, tahap_id)
+     */
+    public function hitungKebutuhan(Order $order): array
+    {
+        $kebutuhan = [];
+
+        foreach ($order->items as $item) {
+            // Cari kandidat BOM (kosong atau spesifik ke item)
+            $boms = BOM::where('produk_id', $item->produk_id)
+                ->where(function($q) use ($item) {
+                    $q->whereNull('ukuran_id')->orWhere('ukuran_id', $item->ukuran_id);
+                })
+                ->where(function($q) use ($item) {
+                    $q->whereNull('warna_id')->orWhere('warna_id', $item->warna_id);
+                })
+                ->get();
+
+            // Kelompokkan kandidat per bahan dan tahap
+            $grouped = $boms->groupBy(function($bom) {
+                return $bom->bahan_id . '_' . $bom->tahap_id;
+            });
+
+            foreach ($grouped as $key => $group) {
+                // Paling spesifik menang: ukuran+warna (3) > ukuran (2) > warna (1) > umum (0)
+                $terpilih = $group->sortByDesc(function($bom) {
+                    $score = 0;
+                    if ($bom->ukuran_id) $score += 2;
+                    if ($bom->warna_id) $score += 1;
+                    return $score;
+                })->first();
+
+                // Hitung qty: qty * qty_per_pcs * (1 + waste%)
+                $qtyRencana = $item->qty * $terpilih->qty_per_pcs * (1 + ($terpilih->waste_persen / 100));
+
+                if (!isset($kebutuhan[$key])) {
+                    $kebutuhan[$key] = [
+                        'bahan_id' => $terpilih->bahan_id,
+                        'tahap_id' => $terpilih->tahap_id,
+                        'qty_rencana' => 0
+                    ];
+                }
+                $kebutuhan[$key]['qty_rencana'] += $qtyRencana;
+            }
+        }
+
+        // Pembulatan ke atas 3 desimal
+        foreach ($kebutuhan as &$keb) {
+            $keb['qty_rencana'] = ceil($keb['qty_rencana'] * 1000) / 1000;
+        }
+
+        return array_values($kebutuhan);
+    }
+
+    // ====================================================================
+    // KODE ASLI ANDA UNTUK CRUD BOM CONTROLLER (BATCH 2)
+    // ====================================================================
+
     public function store($produkId, array $data)
     {
         $this->validateBahanAktif($data['bahan_id']);

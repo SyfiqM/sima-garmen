@@ -55,6 +55,39 @@ Route::prefix('v1')->group(function () {
         // Audit Log (Admin & Manajer)
         Route::get('audit-log', [\App\Http\Controllers\Api\AuditLogController::class, 'index']);
 
+        // Order (Tahap 1 CRUD)
+        Route::apiResource('order', \App\Http\Controllers\Api\OrderController::class);
+
+        // Order (Tahap 1 CRUD)
+        Route::apiResource('order', \App\Http\Controllers\Api\OrderController::class);
+        
+        // Order (Tahap 3C - Transisi Status Bisnis)
+        Route::post('order/{id}/ajukan', [\App\Http\Controllers\Api\OrderController::class, 'aksiBisnis'])->defaults('aksi', 'ajukan');
+        Route::post('order/{id}/tarik', [\App\Http\Controllers\Api\OrderController::class, 'aksiBisnis'])->defaults('aksi', 'tarik');
+        Route::post('order/{id}/tolak', [\App\Http\Controllers\Api\OrderController::class, 'aksiBisnis'])->defaults('aksi', 'tolak');
+        Route::post('order/{id}/perbaiki', [\App\Http\Controllers\Api\OrderController::class, 'aksiBisnis'])->defaults('aksi', 'perbaiki');
+        Route::post('order/{id}/setujui', [\App\Http\Controllers\Api\OrderController::class, 'aksiBisnis'])->defaults('aksi', 'setujui');
+        Route::post('order/{id}/revisi', [\App\Http\Controllers\Api\OrderController::class, 'aksiBisnis'])->defaults('aksi', 'revisi');
+        Route::post('order/{id}/batalkan', [\App\Http\Controllers\Api\OrderController::class, 'aksiBisnis'])->defaults('aksi', 'batalkan');
+        Route::post('order/{id}/hentikan', [\App\Http\Controllers\Api\OrderController::class, 'aksiBisnis'])->defaults('aksi', 'hentikan');
+
+        // Stok, Kartu Stok, dan Kekurangan Bahan (Tahap 4A)
+        Route::get('stok', [\App\Http\Controllers\Api\StockController::class, 'index']);
+        Route::get('bahan/{id}/kartu-stok', [\App\Http\Controllers\Api\StockController::class, 'kartuStok']);
+        Route::get('kekurangan-bahan', [\App\Http\Controllers\Api\StockController::class, 'kekuranganBahan']);
+
+        // Pembelian & Penerimaan (Tahap 4B)
+        Route::apiResource('po', \App\Http\Controllers\Api\PoController::class)->except(['update', 'destroy']);
+        Route::post('po/{id}/pesan', [\App\Http\Controllers\Api\PoController::class, 'pesan']);
+        
+        Route::apiResource('penerimaan', \App\Http\Controllers\Api\PenerimaanController::class)->only(['index', 'store', 'show']);
+
+        // Stok Opname (Tahap 4C)
+        Route::apiResource('opname', \App\Http\Controllers\Api\OpnameController::class)->only(['index', 'store', 'show']);
+        Route::post('opname/{id}/ajukan', [\App\Http\Controllers\Api\OpnameController::class, 'aksiBisnis'])->defaults('aksi', 'ajukan');
+        Route::post('opname/{id}/tolak', [\App\Http\Controllers\Api\OpnameController::class, 'aksiBisnis'])->defaults('aksi', 'tolak');
+        Route::post('opname/{id}/setujui', [\App\Http\Controllers\Api\OpnameController::class, 'aksiBisnis'])->defaults('aksi', 'setujui');
+
         $masterUmum = ['pelanggan', 'supplier', 'ukuran', 'warna', 'satuan', 'jenis-cacat', 'line-produksi', 'tahap'];
         Route::prefix('{tipe_master}')->whereIn('tipe_master', $masterUmum)->group(function () {
             Route::get('/', [App\Http\Controllers\Api\MasterController::class, 'index']);

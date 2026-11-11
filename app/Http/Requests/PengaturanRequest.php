@@ -6,7 +6,10 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class PengaturanRequest extends FormRequest
 {
-    public function authorize(): bool { return $this->user()->role === 'admin'; }
+    public function authorize(): bool
+    {
+        return $this->user()?->hasRole('admin') ?? false;
+    }
 
     public function rules(): array
     {

@@ -7,9 +7,9 @@ use Illuminate\Validation\Rule;
 
 class BahanRequest extends FormRequest
 {
-    public function authorize(): bool 
-    { 
-        return in_array($this->user()->role, ['admin', 'gudang']); 
+    public function authorize(): bool
+    {
+        return $this->user()?->hasRole('admin', 'gudang') ?? false;
     }
 
     public function rules(): array

@@ -32,6 +32,11 @@ class WoBahan extends Model
         return $this->belongsTo(WorkOrder::class, 'wo_id');
     }
 
+    public function workOrder(): BelongsTo
+    {
+        return $this->wo();
+    }
+
     public function bahan(): BelongsTo
     {
         return $this->belongsTo(Bahan::class, 'bahan_id');

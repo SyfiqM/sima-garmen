@@ -7,9 +7,9 @@ use Illuminate\Validation\Rule;
 
 class ProdukRequest extends FormRequest
 {
-    public function authorize(): bool 
-    { 
-        return in_array($this->user()->role, ['admin', 'manajer']); 
+    public function authorize(): bool
+    {
+        return $this->user()?->hasRole('admin', 'manajer') ?? false;
     }
 
     public function rules(): array

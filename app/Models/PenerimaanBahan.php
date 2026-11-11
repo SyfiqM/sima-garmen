@@ -51,8 +51,13 @@ class PenerimaanBahan extends Model
         return $this->belongsTo(User::class, 'diterima_oleh');
     }
 
-    public function penerimaanBahanItems(): HasMany
+    public function items(): HasMany
     {
         return $this->hasMany(PenerimaanBahanItem::class, 'penerimaan_id');
+    }
+
+    public function penerimaanBahanItems(): HasMany
+    {
+        return $this->items();
     }
 }

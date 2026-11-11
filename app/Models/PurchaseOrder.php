@@ -40,9 +40,14 @@ class PurchaseOrder extends Model
         return $this->belongsTo(User::class, 'dibuat_oleh');
     }
 
-    public function purchaseOrderItems(): HasMany
+    public function items(): HasMany
     {
         return $this->hasMany(PurchaseOrderItem::class, 'po_id');
+    }
+
+    public function purchaseOrderItems(): HasMany
+    {
+        return $this->items();
     }
 
     public function penerimaanBahan(): HasMany

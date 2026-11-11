@@ -9,18 +9,18 @@ class MasterRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $role = $this->user()->role;
+        $user = $this->user();
         $tipe = $this->route('tipe_master');
 
-        if ($role === 'admin') return true;
+        if ($user?->hasRole('admin')) return true;
 
-        if ($role === 'manajer') {
+        if ($user?->hasRole('manajer')) {
             return in_array($tipe, ['pelanggan', 'supplier', 'produk', 'ukuran', 'warna', 'satuan', 'jenis-cacat', 'line-produksi']);
         }
-        if ($role === 'staf_order') {
+        if ($user?->hasRole('staf_order')) {
             return $tipe === 'pelanggan';
         }
-        if ($role === 'gudang') {
+        if ($user?->hasRole('gudang')) {
             return $tipe === 'supplier';
         }
 

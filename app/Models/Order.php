@@ -8,10 +8,20 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 
 class Order extends Model
 {
     use SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $order) {
+            if (empty($order->dibuat_oleh) && Auth::check()) {
+                $order->dibuat_oleh = Auth::id();
+            }
+        });
+    }
 
     protected $table = 'orders';
 
@@ -64,14 +74,24 @@ class Order extends Model
         return $this->belongsTo(User::class, 'disetujui_oleh');
     }
 
-    public function orderItems(): HasMany
+    public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class, 'order_id');
     }
 
-    public function orderLampiran(): HasMany
+    public function orderItems(): HasMany
+    {
+        return $this->items();
+    }
+
+    public function lampiran(): HasMany
     {
         return $this->hasMany(OrderLampiran::class, 'order_id');
+    }
+
+    public function orderLampiran(): HasMany
+    {
+        return $this->lampiran();
     }
 
     public function purchaseOrderItems(): HasMany

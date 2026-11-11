@@ -38,8 +38,13 @@ class StokOpname extends Model
         return $this->belongsTo(User::class, 'disetujui_oleh');
     }
 
-    public function stokOpnameItems(): HasMany
+    public function items(): HasMany
     {
         return $this->hasMany(StokOpnameItem::class, 'opname_id');
+    }
+
+    public function stokOpnameItems(): HasMany
+    {
+        return $this->items();
     }
 }

@@ -12,7 +12,7 @@ class PengaturanController extends Controller
 {
     public function index(Request $request)
     {
-        if ($request->user()->role !== 'admin') abort(403);
+        if (!$request->user()->hasRole('admin')) abort(403);
         $pengaturan = DB::table('pengaturan')->get();
         return response()->json(['data' => $pengaturan]);
     }

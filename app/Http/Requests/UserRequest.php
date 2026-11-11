@@ -7,7 +7,10 @@ use Illuminate\Validation\Rule;
 
 class UserRequest extends FormRequest
 {
-    public function authorize(): bool { return $this->user()->role === 'admin'; }
+    public function authorize(): bool
+    {
+        return $this->user()?->hasRole('admin') ?? false;
+    }
 
     public function rules(): array
     {
