@@ -165,4 +165,53 @@ class Batch5ProductionTest extends TestCase
 
         $this->assertDatabaseCount('produksi_log', 0);
     }
+
+    public function test_void_log_berhasil_dan_tercatat_di_audit()
+    {
+        $logIds = array_values((array) $this->productionService->catatProduksi($this->wo, $this->tahapIds['cutting'], [
+            ['wo_item_id' => $this->woItem->id, 'qty_hasil' => 50, 'qty_reject' => 0],
+        ], now()->format('Y-m-d'), $this->supervisor->id));
+
+        $this->productionService->voidLog($logIds[0], 'Salah input jumlah', $this->supervisor->id);
+
+        $this->assertDatabaseHas('wo_items', ['id' => $this->woItem->id, 'qty_cutting' => 0]);
+        $this->assertDatabaseHas('activity_log', ['aksi' => 'produksi.void', 'subjek_tipe' => 'ProduksiLog', 'subjek_id' => $logIds[0]]);
+    }
+
+    public function test_void_cutting_ditolak_jika_sudah_dijahit()
+    {
+        $logIds = array_values((array) $this->productionService->catatProduksi($this->wo, $this->tahapIds['cutting'], [
+            ['wo_item_id' => $this->woItem->id, 'qty_hasil' => 50, 'qty_reject' => 0],
+        ], now()->format('Y-m-d'), $this->supervisor->id));
+
+        $this->productionService->catatProduksi($this->wo, $this->tahapIds['sewing'], [
+            ['wo_item_id' => $this->woItem->id, 'qty_hasil' => 40, 'qty_reject' => 0],
+        ], now()->format('Y-m-d'), $this->supervisorSewing->id);
+
+        try {
+            $this->productionService->voidLog($logIds[0], 'Salah input jumlah', $this->supervisor->id);
+            $this->fail('Seharusnya ditolak karena hasil cutting sudah dijahit.');
+        } catch (BusinessRuleException $e) {
+            $this->assertEquals('VOID_DITOLAK_HILIR_NEGATIF', $e->getCodeBisnis());
+        }
+
+        $this->assertDatabaseHas('wo_items', ['id' => $this->woItem->id, 'qty_cutting' => 50]);
+    }
+
+    public function test_tambah_potong_tutup_dan_buka_tahap_oleh_manajer_tercatat_di_audit()
+    {
+        $manajer = User::factory()->create(['role' => 'manajer']);
+
+        $item = $this->productionService->tambahPotong($this->woItem->id, 5, 'Reject cutting 5 pcs', $manajer->id);
+        $this->assertEquals(110, $item->qty_batas_potong);
+        $this->assertDatabaseHas('activity_log', ['aksi' => 'produksi.tambah_potong', 'subjek_tipe' => 'WoItem', 'subjek_id' => $this->woItem->id]);
+
+        $this->productionService->tutupTahap($this->wo->id, 'cutting', 'Sisa antrean tidak dipotong', $manajer->id);
+        $this->assertDatabaseHas('wo_tahap', ['wo_id' => $this->wo->id, 'tahap_id' => $this->tahapIds['cutting'], 'status' => 'selesai']);
+        $this->assertDatabaseHas('activity_log', ['aksi' => 'produksi.tahap_tutup', 'subjek_tipe' => 'WorkOrder', 'subjek_id' => $this->wo->id]);
+
+        $this->productionService->bukaTahap($this->wo->id, 'cutting', 'Perlu potong tambahan', $manajer->id);
+        $this->assertDatabaseHas('wo_tahap', ['wo_id' => $this->wo->id, 'tahap_id' => $this->tahapIds['cutting'], 'status' => 'berjalan']);
+        $this->assertDatabaseHas('activity_log', ['aksi' => 'produksi.tahap_buka', 'subjek_tipe' => 'WoTahap']);
+    }
 }

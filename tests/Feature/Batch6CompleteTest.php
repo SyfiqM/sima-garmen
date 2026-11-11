@@ -2,81 +2,91 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Models\User;
-use App\Models\Order;
-use App\Models\WorkOrder;
-use App\Models\WoItem;
-use App\Models\WoTahap;
-use App\Models\QcRepair;
-use App\Services\QcService;
-use App\Services\PackingService;
-use App\Services\WorkOrderService;
 use App\Exceptions\BusinessRuleException;
-use Illuminate\Support\Facades\DB;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Pelanggan;
+use App\Models\Produk;
+use App\Models\QcRepair;
+use App\Models\Tahap;
+use App\Models\Ukuran;
+use App\Models\User;
+use App\Models\Warna;
+use App\Models\WoItem;
+use App\Models\WorkOrder;
+use App\Models\WoTahap;
+use App\Services\PackingService;
+use App\Services\QcService;
+use App\Services\WorkOrderService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class Batch6CompleteTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $admin;
+
     protected $manajer;
+
     protected $supervisor;
+
     protected $qc;
-    
+
     protected $wo;
+
     protected $woItem;
 
     protected $qcService;
+
     protected $packingService;
+
     protected $woService;
+
+    protected array $tahapIds = [];
 
     protected function setUp(): void
     {
         parent::setUp();
-        
-        // Buat user sesuai role
+
+        // Master tahap dibuat eksplisit (RefreshDatabase tidak menjalankan seeder)
+        foreach ([['cutting', 'Pemotongan', 1], ['sewing', 'Penjahitan', 2], ['finishing', 'Finishing', 3]] as [$kode, $nama, $urutan]) {
+            $this->tahapIds[$kode] = Tahap::create(['kode' => $kode, 'nama' => $nama, 'urutan' => $urutan])->id;
+        }
+
         $this->admin = User::factory()->create(['role' => 'admin']);
         $this->manajer = User::factory()->create(['role' => 'manajer']);
-        $this->supervisor = User::factory()->create(['role' => 'supervisor']);
+        $this->supervisor = User::factory()->create(['role' => 'supervisor', 'tahap_id' => $this->tahapIds['finishing']]);
         $this->qc = User::factory()->create(['role' => 'qc']);
-        
-        // Setup data penomoran dummy agar NumberingService tidak error
-        DB::table('penomoran')->insert([
-            ['kode' => 'QC', 'periode' => date('Ym'), 'nomor_terakhir' => 0],
-            ['kode' => 'PK', 'periode' => date('Ym'), 'nomor_terakhir' => 0],
-            ['kode' => 'WO', 'periode' => date('Ym'), 'nomor_terakhir' => 0],
+
+        $pelanggan = Pelanggan::create(['kode' => 'PLG-001', 'nama' => 'Pelanggan Tes', 'alamat' => 'Alamat Tes']);
+        $produk = Produk::create(['kode' => 'PRD-001', 'nama' => 'Produk Tes']);
+        $warna = Warna::create(['nama' => 'Hitam']);
+        $ukuran = Ukuran::create(['kode' => 'M']);
+
+        $order = Order::create([
+            'no_order' => 'ORD-TEST-06', 'pelanggan_id' => $pelanggan->id, 'tgl_order' => now(),
+            'deadline' => now()->addDays(7), 'status' => 'produksi', 'dibuat_oleh' => $this->admin->id,
         ]);
 
-        // Setup Order & WO
-        $order = Order::create([
-            'no_order' => 'ORD-TEST-06', 'pelanggan_id' => 1, 'tgl_order' => now(), 
-            'deadline' => now()->addDays(7), 'status' => 'produksi', 'dibuat_oleh' => $this->admin->id
+        $orderItem = OrderItem::create([
+            'order_id' => $order->id, 'produk_id' => $produk->id,
+            'warna_id' => $warna->id, 'ukuran_id' => $ukuran->id, 'qty' => 100,
         ]);
 
         $this->wo = WorkOrder::create([
-            'no_wo' => 'WO-TEST-06', 'order_id' => $order->id, 'revisi_ke' => 0, 
-            'status' => 'aktif', 'tgl_target' => now()->addDays(5), 'dibuat_oleh' => $this->admin->id
+            'no_wo' => 'WO-TEST-06', 'order_id' => $order->id, 'revisi_ke' => 0,
+            'status' => 'aktif', 'tgl_target' => now()->addDays(5), 'dibuat_oleh' => $this->admin->id,
         ]);
 
-        WoTahap::insert([
-            ['wo_id' => $this->wo->id, 'tahap_id' => 1, 'status' => 'selesai'],
-            ['wo_id' => $this->wo->id, 'tahap_id' => 2, 'status' => 'selesai'],
-            ['wo_id' => $this->wo->id, 'tahap_id' => 3, 'status' => 'berjalan']
-        ]);
+        WoTahap::create(['wo_id' => $this->wo->id, 'tahap_id' => $this->tahapIds['cutting'], 'status' => 'selesai']);
+        WoTahap::create(['wo_id' => $this->wo->id, 'tahap_id' => $this->tahapIds['sewing'], 'status' => 'selesai']);
+        WoTahap::create(['wo_id' => $this->wo->id, 'tahap_id' => $this->tahapIds['finishing'], 'status' => 'berjalan']);
 
-        // Simulasi barang sudah selesai di finishing sebanyak 100 pcs dan siap di-QC
+        // Simulasi: 100 pcs selesai di finishing, siap di-QC (qc_tersedia = 100)
         $this->woItem = WoItem::create([
-            'wo_id' => $this->wo->id, 'order_item_id' => 1, 'qty_order' => 100, 
-            'qty_batas_potong' => 100, 
-            'qty_finishing' => 100, // <-- qc_tersedia = 100
-            'qty_qc_diperiksa' => 0,
-            'qty_qc_lolos' => 0,
-            'qty_qc_reject' => 0,
-            'qty_repair_open' => 0,
-            'qty_repair_selesai' => 0,
-            'qty_packing' => 0
+            'wo_id' => $this->wo->id, 'order_item_id' => $orderItem->id, 'qty_order' => 100,
+            'qty_batas_potong' => 100, 'qty_cutting' => 100, 'qty_sewing' => 100, 'qty_finishing' => 100,
         ]);
 
         $this->woService = app(WorkOrderService::class);
@@ -137,6 +147,7 @@ class Batch6CompleteTest extends TestCase
         
         $repairDoc = QcRepair::where('wo_item_id', $this->woItem->id)->first();
         $this->assertNotNull($repairDoc);
+        $this->assertEquals($this->tahapIds['sewing'], $repairDoc->tahap_tujuan_id);
 
         // 2. Coba tutup kurang saat repair masih gantung -> Harus ditolak
         try {

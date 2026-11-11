@@ -218,7 +218,7 @@ class ProductionService
             $woItem->{$rejectField} = $rejectSesudahVoid;
             $woItem->save();
             $log->update(['status' => 'void', 'void_alasan' => $alasan, 'void_oleh' => $userId, 'void_at' => now()]);
-            Audit::log($userId, 'produksi.void', $log, null, null, $alasan);
+            Audit::log($userId, 'produksi.void', 'ProduksiLog', $log->id, null, ['status' => 'void'], $alasan);
 
             return $log;
         });
@@ -250,7 +250,7 @@ class ProductionService
             }
 
             $woTahap->update(['status' => 'selesai', 'selesai_at' => now(), 'ditutup_oleh' => $userId, 'catatan_penutupan' => $alasan]);
-            Audit::log($userId, 'produksi.tahap_tutup', $workOrder, null, ['kode' => $kodeTahap, 'sisa_antrean' => $sisaAntrean], $alasan);
+            Audit::log($userId, 'produksi.tahap_tutup', 'WorkOrder', $workOrder->id, null, ['kode' => $kodeTahap, 'sisa_antrean' => $sisaAntrean], $alasan);
 
             return $woTahap;
         });
@@ -269,7 +269,7 @@ class ProductionService
             }
 
             $woTahap->update(['status' => 'berjalan', 'selesai_at' => null, 'catatan_penutupan' => $alasan]);
-            Audit::log($userId, 'produksi.tahap_buka', $woTahap, ['status' => 'selesai'], ['status' => 'berjalan'], $alasan);
+            Audit::log($userId, 'produksi.tahap_buka', 'WoTahap', $woTahap->id, ['status' => 'selesai'], ['status' => 'berjalan'], $alasan);
 
             return $woTahap;
         });
@@ -287,7 +287,7 @@ class ProductionService
             $woItem = WoItem::whereKey($woItemId)->lockForUpdate()->firstOrFail();
             $sebelum = $woItem->qty_batas_potong;
             $woItem->increment('qty_batas_potong', $qty);
-            Audit::log($userId, 'produksi.tambah_potong', $woItem, ['qty_batas_potong' => $sebelum], ['qty_batas_potong' => $woItem->qty_batas_potong], $alasan);
+            Audit::log($userId, 'produksi.tambah_potong', 'WoItem', $woItem->id, ['qty_batas_potong' => $sebelum], ['qty_batas_potong' => $woItem->qty_batas_potong], $alasan);
 
             return $woItem->refresh();
         });

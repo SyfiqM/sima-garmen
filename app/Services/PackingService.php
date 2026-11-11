@@ -36,7 +36,10 @@ class PackingService
             ]);
 
             foreach ($items as $item) {
-                $woItem = WoItem::where('id', $item['wo_item_id'])->lockForUpdate()->first();
+                $woItem = WoItem::where('id', $item['wo_item_id'])->lockForUpdate()->firstOrFail();
+                if ((int) $woItem->wo_id !== (int) $wo->id) {
+                    throw new BusinessRuleException('Item tidak termasuk dalam Work Order ini.', 'VALIDASI_GAGAL');
+                }
                 $qty = $item['qty'] ?? 0;
 
                 if ($qty <= 0) continue;

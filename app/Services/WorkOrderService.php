@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Exceptions\BusinessRuleException;
 use App\Helpers\NumberingService;
+use App\Enums\OrderStatus;
+use App\Enums\WoStatus;
 use App\Models\Order;
 use App\Models\Tahap;
 use App\Models\WoBahan;
@@ -97,11 +99,15 @@ class WorkOrderService
      */
     public function cekSelesai(WorkOrder $wo)
     {
-        // Pastikan relasi items sudah dimuat
-        $wo->load('items');
-        
+        // Hanya WO aktif yang bisa diselesaikan otomatis
+        if ($wo->status !== WoStatus::Aktif) {
+            return;
+        }
+
+        $wo->load('woItems');
+
         $selesaiSemua = true;
-        foreach ($wo->items as $item) {
+        foreach ($wo->woItems as $item) {
             // Syarat selesai: yang di-packing harus persis sama dengan yang dipesan
             if ($item->qty_packing < $item->qty_order) {
                 $selesaiSemua = false;
@@ -125,9 +131,16 @@ class WorkOrderService
                        'catatan_penutupan' => 'Ditutup otomatis oleh sistem karena produksi selesai.'
                    ]);
 
-            // 3. Ubah status Order menjadi siap_kirim (asumsi belum ada yang dikirim parsial)
-            $statusOrder = $wo->order->status === 'dikirim_sebagian' ? 'dikirim_sebagian' : 'siap_kirim';
-            $wo->order->update(['status' => $statusOrder]);
+            // 3. Status order: siap_kirim (atau dikirim_sebagian bila sudah ada koli terkirim).
+            //    Order yang dihentikan tidak diubah statusnya.
+            $order = $wo->order;
+            if ($order->status !== OrderStatus::Dihentikan) {
+                $order->update([
+                    'status' => $order->status === OrderStatus::DikirimSebagian
+                        ? OrderStatus::DikirimSebagian
+                        : OrderStatus::SiapKirim,
+                ]);
+            }
         }
     }
 
@@ -138,10 +151,14 @@ class WorkOrderService
                 throw new BusinessRuleException('Alasan tutup kurang wajib diisi minimal 5 karakter.', 'ALASAN_WAJIB');
             }
 
-            $wo->load('items');
-            
+            if ($wo->status !== WoStatus::Aktif) {
+                throw new BusinessRuleException('Hanya WO berstatus aktif yang bisa ditutup kurang.', 'STATUS_TIDAK_VALID');
+            }
+
+            $wo->load('woItems');
+
             // Syarat: qc_tersedia = 0 dan qty_repair_open = 0 untuk semua item
-            foreach ($wo->items as $item) {
+            foreach ($wo->woItems as $item) {
                 $qcTersedia = $item->qty_finishing + $item->qty_repair_selesai - $item->qty_qc_diperiksa;
                 if ($qcTersedia > 0 || $item->qty_repair_open > 0) {
                     throw new BusinessRuleException('Masih ada barang di antrean QC atau Repair. Selesaikan dahulu sebelum tutup kurang.', 'STATUS_TIDAK_VALID');

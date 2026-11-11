@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\WorkOrder;
+use App\Models\Tahap;
 use App\Models\WoItem;
 use App\Models\QcInspeksi;
 use App\Models\QcInspeksiItem;
@@ -28,7 +29,10 @@ class QcService
             ]);
 
             foreach ($items as $item) {
-                $woItem = WoItem::where('id', $item['wo_item_id'])->lockForUpdate()->first();
+                $woItem = WoItem::where('id', $item['wo_item_id'])->lockForUpdate()->firstOrFail();
+                if ((int) $woItem->wo_id !== (int) $wo->id) {
+                    throw new BusinessRuleException('Item tidak termasuk dalam Work Order ini.', 'VALIDASI_GAGAL');
+                }
                 
                 $diperiksa = $item['qty_diperiksa'] ?? 0;
                 $lolos = $item['qty_lolos'] ?? 0;
@@ -75,7 +79,7 @@ class QcService
                         'qc_inspeksi_item_id' => $qcItem->id,
                         'wo_item_id' => $woItem->id,
                         'qty' => $repair,
-                        'tahap_tujuan_id' => 2, // Default: diarahkan ke sewing (bisa dinamis sesuai request)
+                        'tahap_tujuan_id' => $this->resolveTahapTujuan($item['tahap_tujuan_id'] ?? null),
                         'status' => 'open'
                     ]);
                     $woItem->qty_repair_open += $repair;
@@ -126,5 +130,23 @@ class QcService
 
             return $repair;
         });
+    }
+
+    /**
+     * Tahap tujuan repair: sewing atau finishing. Default sewing bila tidak diisi.
+     */
+    private function resolveTahapTujuan($tahapId): int
+    {
+        if ($tahapId === null || $tahapId === '') {
+            $id = Tahap::where('kode', 'sewing')->value('id');
+        } else {
+            $id = Tahap::whereKey((int) $tahapId)->whereIn('kode', ['sewing', 'finishing'])->value('id');
+        }
+
+        if (! $id) {
+            throw new BusinessRuleException('Tahap tujuan repair harus sewing atau finishing.', 'VALIDASI_GAGAL');
+        }
+
+        return (int) $id;
     }
 }
