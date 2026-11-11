@@ -3,16 +3,19 @@
 namespace App\Services;
 
 use App\Exceptions\BusinessRuleException;
+use App\Helpers\Audit;
 use App\Helpers\NumberingService;
 use App\Enums\OrderStatus;
 use App\Enums\WoStatus;
 use App\Models\Order;
 use App\Models\Tahap;
+use App\Models\User;
 use App\Models\WoBahan;
 use App\Models\WoItem;
 use App\Models\WorkOrder;
 use App\Models\WoTahap;
 use Carbon\Carbon;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class WorkOrderService
@@ -146,7 +149,14 @@ class WorkOrderService
 
     public function tutupKurang(WorkOrder $wo, string $alasan, int $userId)
     {
+        $user = User::findOrFail($userId);
+        if (! $user->hasRole('admin', 'manajer')) {
+            throw new BusinessRuleException('Hanya Manajer atau Admin yang dapat menutup WO kurang.', 'TIDAK_ADA_HAK', 403);
+        }
+
         return DB::transaction(function () use ($wo, $alasan, $userId) {
+            $wo = WorkOrder::whereKey($wo->id)->lockForUpdate()->firstOrFail();
+
             if (empty(trim($alasan)) || strlen($alasan) < 5) {
                 throw new BusinessRuleException('Alasan tutup kurang wajib diisi minimal 5 karakter.', 'ALASAN_WAJIB');
             }
@@ -181,13 +191,65 @@ class WorkOrderService
                    ]);
 
             // 3. Update Order
-            $wo->order->update([
-                'status' => 'siap_kirim',
-                'ditutup_kurang' => 1,
-                'alasan_tutup_kurang' => $alasan
-            ]);
+            //    Status order tidak diturunkan bila sudah dikirim sebagian atau dihentikan.
+            $order = $wo->order;
+            $dataOrder = ['ditutup_kurang' => 1, 'alasan_tutup_kurang' => $alasan];
+            if (! in_array($order->status, [OrderStatus::DikirimSebagian, OrderStatus::Dihentikan], true)) {
+                $dataOrder['status'] = 'siap_kirim';
+            }
+            $order->update($dataOrder);
 
-            return $wo;
+            Audit::log($userId, 'wo.tutup_kurang', 'WorkOrder', $wo->id, ['status' => 'aktif'], ['status' => 'ditutup_kurang'], $alasan);
+
+            return $wo->fresh();
         });
+    }
+
+    /**
+     * Daftar WO. Supervisor hanya WO yang memiliki tahapnya; QC hanya WO yang sudah
+     * menghasilkan barang di finishing (bagian 3.2 rancangan).
+     */
+    public function daftar(User $user, array $filter = [], int $perPage = 25): LengthAwarePaginator
+    {
+        $query = WorkOrder::with(['order.pelanggan'])->withCount('woItems');
+        $this->batasiAkses($query, $user);
+
+        return $query
+            ->when($filter['status'] ?? null, fn ($q, $v) => $q->where('status', $v))
+            ->when($filter['order_id'] ?? null, fn ($q, $v) => $q->where('order_id', $v))
+            ->when($filter['search'] ?? null, fn ($q, $v) => $q->where(function ($w) use ($v) {
+                $w->where('no_wo', 'like', "%{$v}%")
+                    ->orWhereHas('order', fn ($o) => $o->where('no_order', 'like', "%{$v}%"));
+            }))
+            ->latest('id')
+            ->paginate($perPage);
+    }
+
+    public function detail(User $user, int $id): WorkOrder
+    {
+        $query = WorkOrder::with([
+            'order.pelanggan',
+            'woItems.orderItem.produk', 'woItems.orderItem.warna', 'woItems.orderItem.ukuran',
+            'woTahap.tahap',
+            'woBahan.bahan',
+            'packing.packingItems',
+        ]);
+        $this->batasiAkses($query, $user);
+
+        $wo = $query->findOrFail($id);
+        $wo->woItems->each(fn (WoItem $i) => $i->append([
+            'cutting_boleh', 'sewing_tersedia', 'finishing_tersedia', 'qc_tersedia', 'packing_tersedia', 'kirim_tersedia',
+        ]));
+
+        return $wo;
+    }
+
+    private function batasiAkses($query, User $user): void
+    {
+        if ($user->hasRole('supervisor')) {
+            $query->whereHas('woTahap', fn ($q) => $q->where('tahap_id', $user->tahap_id));
+        } elseif ($user->hasRole('qc')) {
+            $query->whereHas('woItems', fn ($q) => $q->where('qty_finishing', '>', 0));
+        }
     }
 }

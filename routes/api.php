@@ -11,15 +11,19 @@ use App\Http\Controllers\Api\OpnameController;
 use App\Http\Controllers\Api\OptionController;
 use App\Http\Controllers\Api\OrderAttachmentController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\PackingController;
 use App\Http\Controllers\Api\PenerimaanController;
 use App\Http\Controllers\Api\PengaturanController;
 use App\Http\Controllers\Api\PoController;
 use App\Http\Controllers\Api\ProductionController;
 use App\Http\Controllers\Api\ProdukController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\QcController;
+use App\Http\Controllers\Api\RepairController;
 use App\Http\Controllers\Api\StockController;
 use App\Http\Controllers\Api\SystemController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WorkOrderController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -130,6 +134,26 @@ Route::prefix('v1')->group(function () {
         Route::post('opname/{id}/ajukan', [OpnameController::class, 'aksiBisnis'])->defaults('aksi', 'ajukan');
         Route::post('opname/{id}/tolak', [OpnameController::class, 'aksiBisnis'])->defaults('aksi', 'tolak');
         Route::post('opname/{id}/setujui', [OpnameController::class, 'aksiBisnis'])->defaults('aksi', 'setujui');
+
+        // Batch 6 - QC, repair, packing, work order
+        Route::get('qc/antrean', [QcController::class, 'antrean']);
+        Route::get('qc/inspeksi', [QcController::class, 'index']);
+        Route::post('qc/inspeksi', [QcController::class, 'store']);
+        Route::post('qc/inspeksi/{id}/void', [QcController::class, 'void']);
+
+        Route::get('repair', [RepairController::class, 'index']);
+        Route::post('repair/{id}/selesai', [RepairController::class, 'selesai']);
+
+        Route::get('packing', [PackingController::class, 'index']);
+        Route::post('packing', [PackingController::class, 'store']);
+        Route::get('packing/{id}', [PackingController::class, 'show']);
+        Route::post('packing/{id}/void', [PackingController::class, 'void']);
+        Route::get('packing/{id}/label', [PackingController::class, 'label']);
+
+        Route::get('work-order', [WorkOrderController::class, 'index']);
+        Route::get('work-order/{id}', [WorkOrderController::class, 'show'])->whereNumber('id');
+        Route::post('work-order/{id}/tutup-kurang', [WorkOrderController::class, 'tutupKurang']);
+
 
         $masterUmum = ['pelanggan', 'supplier', 'ukuran', 'warna', 'satuan', 'jenis-cacat', 'line-produksi', 'tahap'];
         Route::prefix('{tipe_master}')->whereIn('tipe_master', $masterUmum)->group(function () {

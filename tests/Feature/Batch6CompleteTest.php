@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Exceptions\BusinessRuleException;
+use App\Models\JenisCacat;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Pelanggan;
@@ -33,6 +34,10 @@ class Batch6CompleteTest extends TestCase
 
     protected $qc;
 
+    protected $supervisorSewing;
+
+    protected $jenisCacat;
+
     protected $wo;
 
     protected $woItem;
@@ -58,6 +63,8 @@ class Batch6CompleteTest extends TestCase
         $this->manajer = User::factory()->create(['role' => 'manajer']);
         $this->supervisor = User::factory()->create(['role' => 'supervisor', 'tahap_id' => $this->tahapIds['finishing']]);
         $this->qc = User::factory()->create(['role' => 'qc']);
+        $this->supervisorSewing = User::factory()->create(['role' => 'supervisor', 'tahap_id' => $this->tahapIds['sewing']]);
+        $this->jenisCacat = JenisCacat::create(['kode' => 'JH-01', 'nama' => 'Jahitan putus', 'kategori' => 'jahitan']);
 
         $pelanggan = Pelanggan::create(['kode' => 'PLG-001', 'nama' => 'Pelanggan Tes', 'alamat' => 'Alamat Tes']);
         $produk = Produk::create(['kode' => 'PRD-001', 'nama' => 'Produk Tes']);
@@ -140,7 +147,13 @@ class Batch6CompleteTest extends TestCase
 
         // 1. QC 100 pcs: 90 lolos, 6 repair, 4 reject
         $this->qcService->catatInspeksi($this->wo, [
-            ['wo_item_id' => $this->woItem->id, 'qty_diperiksa' => 100, 'qty_lolos' => 90, 'qty_repair' => 6, 'qty_reject' => 4]
+            [
+                'wo_item_id' => $this->woItem->id, 'qty_diperiksa' => 100, 'qty_lolos' => 90, 'qty_repair' => 6, 'qty_reject' => 4,
+                'cacat' => [
+                    ['jenis_cacat_id' => $this->jenisCacat->id, 'qty' => 6, 'tindakan' => 'repair'],
+                    ['jenis_cacat_id' => $this->jenisCacat->id, 'qty' => 4, 'tindakan' => 'reject'],
+                ],
+            ],
         ], now()->format('Y-m-d'), $this->qc->id);
 
         $this->assertDatabaseHas('wo_items', ['id' => $this->woItem->id, 'qty_qc_lolos' => 90, 'qty_repair_open' => 6, 'qty_qc_reject' => 4]);
@@ -155,8 +168,8 @@ class Batch6CompleteTest extends TestCase
             $this->fail('Seharusnya gagal tutup kurang karena ada repair_open');
         } catch (BusinessRuleException $e) {}
 
-        // 3. Supervisor menyelesaikan repair 6 pcs
-        $this->qcService->selesaikanRepair($repairDoc->id, 6, $this->supervisor->id);
+        // 3. Supervisor sewing (tahap tujuan) menyelesaikan repair 6 pcs
+        $this->qcService->selesaikanRepair($repairDoc->id, 6, $this->supervisorSewing->id);
         $this->assertDatabaseHas('wo_items', ['id' => $this->woItem->id, 'qty_repair_open' => 0, 'qty_repair_selesai' => 6]);
 
         // 4. QC periksa ulang 6 pcs hasil repair: 6 lolos semua
@@ -181,5 +194,40 @@ class Batch6CompleteTest extends TestCase
         // Verifikasi hasil akhir Tutup Kurang
         $this->assertDatabaseHas('work_orders', ['id' => $this->wo->id, 'status' => 'ditutup_kurang']);
         $this->assertDatabaseHas('orders', ['id' => $this->wo->order_id, 'status' => 'siap_kirim', 'ditutup_kurang' => 1]);
+    }
+
+    public function test_inspeksi_menolak_cacat_yang_tidak_cocok_dengan_qty_repair_dan_reject()
+    {
+        try {
+            $this->qcService->catatInspeksi($this->wo, [
+                ['wo_item_id' => $this->woItem->id, 'qty_diperiksa' => 100, 'qty_lolos' => 94, 'qty_repair' => 6, 'qty_reject' => 0],
+            ], now()->format('Y-m-d'), $this->qc->id);
+            $this->fail('Seharusnya gagal karena cacat tidak dicatat.');
+        } catch (BusinessRuleException $e) {
+            $this->assertEquals('VALIDASI_GAGAL', $e->getCodeBisnis());
+        }
+
+        $this->assertDatabaseHas('wo_items', ['id' => $this->woItem->id, 'qty_qc_diperiksa' => 0]);
+    }
+
+    public function test_repair_hanya_dapat_diselesaikan_supervisor_tahap_tujuan()
+    {
+        $this->qcService->catatInspeksi($this->wo, [
+            [
+                'wo_item_id' => $this->woItem->id, 'qty_diperiksa' => 10, 'qty_lolos' => 8, 'qty_repair' => 2, 'qty_reject' => 0,
+                'cacat' => [['jenis_cacat_id' => $this->jenisCacat->id, 'qty' => 2, 'tindakan' => 'repair']],
+            ],
+        ], now()->format('Y-m-d'), $this->qc->id);
+        $repair = QcRepair::where('wo_item_id', $this->woItem->id)->firstOrFail();
+
+        try {
+            $this->qcService->selesaikanRepair($repair->id, 2, $this->supervisor->id);
+            $this->fail('Supervisor finishing bukan tahap tujuan (sewing).');
+        } catch (BusinessRuleException $e) {
+            $this->assertEquals('TIDAK_ADA_HAK', $e->getCodeBisnis());
+        }
+
+        $this->qcService->selesaikanRepair($repair->id, 2, $this->supervisorSewing->id);
+        $this->assertDatabaseHas('qc_repair', ['id' => $repair->id, 'status' => 'selesai', 'qty_selesai' => 2]);
     }
 }
