@@ -3,36 +3,56 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Support\Menu;
+use App\Enums\DocStatus;
+use App\Enums\JenisBahan;
+use App\Enums\MutasiTipe;
+use App\Enums\OpnameStatus;
+use App\Enums\OrderStatus;
+use App\Enums\PackingStatus;
+use App\Enums\PengeluaranTipe;
+use App\Enums\PengirimanStatus;
+use App\Enums\PoStatus;
+use App\Enums\Prioritas;
+use App\Enums\RepairStatus;
+use App\Enums\Role;
+use App\Enums\TahapKode;
+use App\Enums\TindakanCacat;
+use App\Enums\WoStatus;
+use App\Enums\WoTahapStatus;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class SystemController extends Controller
 {
+    public function menu(Request $request)
+    {
+        $role = $request->user()->role->value;
+
+        return response()->json(['data' => Menu::getForRole($role)]);
+    }
+
     public function enums()
     {
-        // Data struktur enum (contoh dasar untuk Frontend)
         return response()->json([
             'data' => [
-                'roles' => [
-                    ['value' => 'admin', 'label' => 'Admin'],
-                    ['value' => 'manajer', 'label' => 'Manajer Produksi'],
-                    ['value' => 'staf_order', 'label' => 'Staf Order'],
-                    ['value' => 'gudang', 'label' => 'Staf Gudang'],
-                    ['value' => 'supervisor', 'label' => 'Supervisor Produksi'],
-                    ['value' => 'qc', 'label' => 'Quality Control'],
-                    ['value' => 'pimpinan', 'label' => 'Pimpinan'],
-                ],
-                'order_status' => [
-                    ['value' => 'draft', 'label' => 'Draft', 'color' => 'gray'],
-                    ['value' => 'diajukan', 'label' => 'Diajukan', 'color' => 'yellow'],
-                    ['value' => 'menunggu_bahan', 'label' => 'Menunggu Bahan', 'color' => 'orange'],
-                    ['value' => 'siap_produksi', 'label' => 'Siap Produksi', 'color' => 'blue'],
-                    ['value' => 'produksi', 'label' => 'Produksi', 'color' => 'indigo'],
-                    ['value' => 'siap_kirim', 'label' => 'Siap Kirim', 'color' => 'teal'],
-                    ['value' => 'dikirim_sebagian', 'label' => 'Dikirim Sebagian', 'color' => 'cyan'],
-                    ['value' => 'terkirim', 'label' => 'Terkirim', 'color' => 'green'],
-                    ['value' => 'dibatalkan', 'label' => 'Dibatalkan', 'color' => 'red'],
-                ]
-            ]
+                'roles' => Role::options(),
+                'order_status' => OrderStatus::options(),
+                'prioritas' => Prioritas::options(),
+                'jenis_bahan' => JenisBahan::options(),
+                'tahap' => TahapKode::options(),
+                'work_order_status' => WoStatus::options(),
+                'work_order_tahap_status' => WoTahapStatus::options(),
+                'purchase_order_status' => PoStatus::options(),
+                'pengeluaran_tipe' => PengeluaranTipe::options(),
+                'mutasi_tipe' => MutasiTipe::options(),
+                'dokumen_status' => DocStatus::options(),
+                'opname_status' => OpnameStatus::options(),
+                'packing_status' => PackingStatus::options(),
+                'pengiriman_status' => PengirimanStatus::options(),
+                'repair_status' => RepairStatus::options(),
+                'tindakan_cacat' => TindakanCacat::options(),
+            ],
         ]);
     }
 
@@ -42,7 +62,7 @@ class SystemController extends Controller
         $pengaturan = DB::table('pengaturan')
             ->whereIn('key', ['nama_perusahaan', 'alamat_perusahaan', 'logo_path'])
             ->pluck('value', 'key');
-            
+
         return response()->json(['data' => $pengaturan]);
     }
 }

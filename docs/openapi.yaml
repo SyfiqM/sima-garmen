@@ -1,0 +1,326 @@
+openapi: 3.1.0
+info:
+  title: SIMA Garmen API
+  version: 1.0.0
+  description: API backend Batch 1B sampai Batch 5.
+servers:
+  - url: http://127.0.0.1:8000/api/v1
+security:
+  - bearerAuth: []
+paths:
+  /auth/login:
+    post:
+      security: []
+      summary: Login menggunakan username atau email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [login, password]
+              properties:
+                login: { type: string }
+                password: { type: string }
+                device_name: { type: string }
+      responses:
+        "200": { description: Token dan user berhasil dikembalikan }
+        "401": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /auth/logout:
+    post:
+      summary: Cabut token aktif
+      responses:
+        "204": { description: Token dicabut }
+        "401": { $ref: "#/components/responses/Error" }
+  /me:
+    get:
+      summary: User aktif dan menu sesuai role
+      responses:
+        "200": { description: Profil dan menu }
+        "401": { $ref: "#/components/responses/Error" }
+  /menu:
+    get:
+      summary: Menu untuk role pemanggil
+      responses:
+        "200": { description: Daftar menu }
+  /enum:
+    get:
+      security: []
+      summary: Enum/status frontend
+      responses:
+        "200": { description: Daftar enum }
+  /notifikasi:
+    get:
+      summary: Notifikasi terpaginasikan
+      responses:
+        "200": { description: Daftar notifikasi }
+  /{tipe_master}:
+    get:
+      summary: Daftar master data
+      parameters:
+        - in: path
+          name: tipe_master
+          required: true
+          schema:
+            {
+              type: string,
+              enum:
+                [
+                  pelanggan,
+                  supplier,
+                  ukuran,
+                  warna,
+                  satuan,
+                  jenis-cacat,
+                  line-produksi,
+                  tahap,
+                ],
+            }
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200": { description: Daftar master terpaginasikan }
+        "403": { $ref: "#/components/responses/Error" }
+    post:
+      summary: Buat master data yang dapat dikelola
+      parameters:
+        - in: path
+          name: tipe_master
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        "201": { description: Master dibuat }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /bahan:
+    get:
+      summary: Daftar bahan dan saldo stok
+      parameters:
+        - in: query
+          name: jenis
+          schema: { type: string }
+        - in: query
+          name: di_bawah_minimum
+          schema: { type: boolean }
+      responses:
+        "200": { description: Stok terpaginasikan }
+  /bahan/{id}/kartu-stok:
+    get:
+      summary: Kartu stok per bahan
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": { description: Bahan dan mutasi stok }
+  /stok:
+    get:
+      summary: Daftar stok
+      responses:
+        "200": { description: Saldo stok bahan }
+        "403": { $ref: "#/components/responses/Error" }
+  /produk/{produk_id}/bom/pratinjau:
+    get:
+      summary: Pratinjau kebutuhan BOM
+      parameters:
+        - in: path
+          name: produk_id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: ukuran
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: warna
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: qty
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        "200": { description: Kebutuhan per bahan dan tahap }
+  /order:
+    get:
+      summary: Daftar order
+      responses:
+        "200": { description: Order terpaginasikan }
+        "403": { $ref: "#/components/responses/Error" }
+    post:
+      summary: Buat draft order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              {
+                type: object,
+                required: [pelanggan_id, tgl_order, deadline, prioritas, items],
+                additionalProperties: true,
+              }
+      responses:
+        "201": { description: Draft dibuat }
+        "422": { $ref: "#/components/responses/Error" }
+  /order/{id}/simulasi-bahan:
+    get:
+      summary: Kebutuhan bahan, tersedia, dan kekurangan
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": { description: Hasil simulasi }
+  /order/{id}/riwayat:
+    get:
+      summary: Riwayat audit order
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": { description: Riwayat status dan aktivitas }
+  /order/{id}/cetak:
+    get:
+      summary: Unduh PDF lembar order
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Dokumen PDF
+          content:
+            application/pdf: { schema: { type: string, format: binary } }
+  /order/{id}/setujui:
+    post:
+      summary: Setujui order dan buat WO/reservasi
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": { description: Order disetujui }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /order/{order}/lampiran:
+    get:
+      summary: Daftar lampiran order
+      parameters:
+        - in: path
+          name: order
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Daftar lampiran privat }
+    post:
+      summary: Unggah JPG, PNG, PDF, atau XLSX ke disk privat
+      parameters:
+        - in: path
+          name: order
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                keterangan: { type: string }
+      responses:
+        "201": { description: Lampiran tersimpan }
+        "422": { $ref: "#/components/responses/Error" }
+  /pengeluaran-bahan:
+    get:
+      summary: Daftar pengeluaran dan retur bahan
+      responses:
+        "200": { description: Dokumen terpaginasikan }
+    post:
+      summary: Catat pengeluaran atau retur bahan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              {
+                type: object,
+                required: [wo_id, tahap_id, tipe, tanggal, items],
+                additionalProperties: true,
+              }
+      responses:
+        "201":
+          { description: Dokumen dibuat; pengeluaran lebih menunggu approval }
+        "422": { $ref: "#/components/responses/Error" }
+  /pengeluaran-bahan/{id}/setujui:
+    post:
+      summary: Setujui pengeluaran lebih reservasi
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": { description: Pengeluaran diterapkan ke stok }
+        "409": { $ref: "#/components/responses/Error" }
+  /produksi/antrean:
+    get:
+      summary: Antrean tahap pemanggil
+      responses:
+        "200": { description: WO dan item tersedia }
+        "403": { $ref: "#/components/responses/Error" }
+  /produksi/log:
+    get:
+      summary: Riwayat log produksi
+      responses:
+        "200": { description: Log terpaginasikan }
+    post:
+      summary: Input hasil produksi per tahap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              {
+                type: object,
+                required: [wo_id, tahap_id, tanggal, items],
+                additionalProperties: true,
+              }
+      responses:
+        "201": { description: Log dan counter tersimpan }
+        "403": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+  /produksi/log/{id}/void:
+    post:
+      summary: Void log produksi dengan alasan
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200": { description: Log di-void }
+        "422": { $ref: "#/components/responses/Error" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum token
+  parameters:
+    id:
+      in: path
+      name: id
+      required: true
+      schema: { type: integer }
+  responses:
+    Error:
+      description: Error API SIMA
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+              code: { type: string }
+              errors:
+                type: object
+                additionalProperties:
+                  type: array
+                  items: { type: string }

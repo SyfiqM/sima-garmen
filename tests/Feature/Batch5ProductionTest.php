@@ -2,36 +2,42 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Models\User;
+use App\Exceptions\BusinessRuleException;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Pelanggan;
 use App\Models\Produk;
 use App\Models\Tahap;
 use App\Models\Ukuran;
+use App\Models\User;
 use App\Models\Warna;
-use App\Models\WorkOrder;
 use App\Models\WoItem;
+use App\Models\WorkOrder;
 use App\Models\WoTahap;
 use App\Services\ProductionService;
-use App\Exceptions\BusinessRuleException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class Batch5ProductionTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $supervisor;
+
+    protected $supervisorSewing;
+
     protected $wo;
+
     protected $woItem;
+
     protected $productionService;
+
     protected array $tahapIds;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $pembuat = User::factory()->create();
         $this->tahapIds = [];
 
@@ -43,6 +49,10 @@ class Batch5ProductionTest extends TestCase
         $this->supervisor = User::factory()->create([
             'role' => 'supervisor',
             'tahap_id' => $this->tahapIds['cutting'],
+        ]);
+        $this->supervisorSewing = User::factory()->create([
+            'role' => 'supervisor',
+            'tahap_id' => $this->tahapIds['sewing'],
         ]);
 
         $pelanggan = Pelanggan::create([
@@ -68,7 +78,7 @@ class Batch5ProductionTest extends TestCase
         ]);
 
         $this->wo = WorkOrder::create([
-            'no_wo' => 'WO-001', 'order_id' => $order->id, 'revisi_ke' => 0, 
+            'no_wo' => 'WO-001', 'order_id' => $order->id, 'revisi_ke' => 0,
             'status' => 'aktif', 'tgl_target' => now()->addDays(5), 'dibuat_oleh' => $pembuat->id,
         ]);
 
@@ -80,17 +90,17 @@ class Batch5ProductionTest extends TestCase
             'wo_id' => $this->wo->id, 'order_item_id' => $orderItem->id, 'qty_order' => 100,
             'qty_batas_potong' => 105, // Toleransi 5 pcs
             'qty_cutting' => 0, 'qty_cutting_reject' => 0,
-            'qty_sewing' => 0, 'qty_sewing_reject' => 0
+            'qty_sewing' => 0, 'qty_sewing_reject' => 0,
         ]);
 
-        $this->productionService = new ProductionService();
+        $this->productionService = new ProductionService;
     }
 
     public function test_input_produksi_sesuai_batas_berhasil()
     {
         // 1. Input Cutting 50 pcs (Batas 105)
         $this->productionService->catatProduksi($this->wo, $this->tahapIds['cutting'], [
-            ['wo_item_id' => $this->woItem->id, 'qty_hasil' => 50, 'qty_reject' => 0]
+            ['wo_item_id' => $this->woItem->id, 'qty_hasil' => 50, 'qty_reject' => 0],
         ], now()->format('Y-m-d'), $this->supervisor->id);
 
         $this->assertDatabaseHas('wo_items', ['id' => $this->woItem->id, 'qty_cutting' => 50]);
@@ -98,8 +108,8 @@ class Batch5ProductionTest extends TestCase
 
         // 2. Input Sewing 40 pcs (Batas dari hasil cutting: 50)
         $this->productionService->catatProduksi($this->wo, $this->tahapIds['sewing'], [
-            ['wo_item_id' => $this->woItem->id, 'qty_hasil' => 40, 'qty_reject' => 0]
-        ], now()->format('Y-m-d'), $this->supervisor->id);
+            ['wo_item_id' => $this->woItem->id, 'qty_hasil' => 40, 'qty_reject' => 0],
+        ], now()->format('Y-m-d'), $this->supervisorSewing->id);
 
         $this->assertDatabaseHas('wo_items', ['id' => $this->woItem->id, 'qty_sewing' => 40]);
     }
@@ -114,7 +124,45 @@ class Batch5ProductionTest extends TestCase
 
         // Coba jahit 60 pcs (padahal potongan baru ada 50)
         $this->productionService->catatProduksi($this->wo, $this->tahapIds['sewing'], [
-            ['wo_item_id' => $this->woItem->id, 'qty_hasil' => 60, 'qty_reject' => 0]
-        ], now()->format('Y-m-d'), $this->supervisor->id);
+            ['wo_item_id' => $this->woItem->id, 'qty_hasil' => 60, 'qty_reject' => 0],
+        ], now()->format('Y-m-d'), $this->supervisorSewing->id);
+    }
+
+    public function test_supervisor_can_record_stage_output_through_api(): void
+    {
+        $this->actingAs($this->supervisor, 'sanctum')
+            ->postJson('/api/v1/produksi/log', [
+                'wo_id' => $this->wo->id,
+                'tahap_id' => $this->tahapIds['cutting'],
+                'tanggal' => now()->toDateString(),
+                'items' => [[
+                    'wo_item_id' => $this->woItem->id,
+                    'qty_hasil' => 25,
+                    'qty_reject' => 0,
+                ]],
+            ])
+            ->assertCreated()
+            ->assertJsonStructure(['data' => ['log_ids']]);
+
+        $this->assertDatabaseHas('wo_items', ['id' => $this->woItem->id, 'qty_cutting' => 25]);
+        $this->assertDatabaseHas('orders', ['id' => $this->wo->order_id, 'status' => 'produksi']);
+    }
+
+    public function test_forbids_supervisor_from_recording_another_stage(): void
+    {
+        $this->actingAs($this->supervisorSewing, 'sanctum')
+            ->postJson('/api/v1/produksi/log', [
+                'wo_id' => $this->wo->id,
+                'tahap_id' => $this->tahapIds['cutting'],
+                'tanggal' => now()->toDateString(),
+                'items' => [[
+                    'wo_item_id' => $this->woItem->id,
+                    'qty_hasil' => 25,
+                    'qty_reject' => 0,
+                ]],
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseCount('produksi_log', 0);
     }
 }

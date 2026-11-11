@@ -15,6 +15,7 @@ class PenerimaanBahanRequest extends FormRequest
     {
         return [
             'po_id' => 'nullable|exists:purchase_orders,id',
+            'alasan_tanpa_po' => 'required_without:po_id|nullable|string|min:5|max:255',
             'supplier_id' => 'required|exists:supplier,id',
             'tgl_terima' => 'required|date',
             'no_sj_supplier' => 'nullable|string|max:50',

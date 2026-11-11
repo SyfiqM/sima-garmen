@@ -1,0 +1,146 @@
+{
+    "info": {
+        "name": "SIMA Garmen API",
+        "description": "Alur inti API Batch 1B sampai Batch 5.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+    },
+    "variable": [
+        { "key": "base_url", "value": "http://127.0.0.1:8000/api/v1" },
+        { "key": "token", "value": "" },
+        { "key": "order_id", "value": "1" },
+        { "key": "wo_id", "value": "1" },
+        { "key": "tahap_id", "value": "1" },
+        { "key": "wo_item_id", "value": "1" }
+    ],
+    "item": [
+        {
+            "name": "Auth and profile",
+            "item": [
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json" },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"login\": \"admin\",\n  \"password\": \"admin12345\",\n  \"device_name\": \"postman\"\n}"
+                        },
+                        "url": "{{base_url}}/auth/login"
+                    }
+                },
+                {
+                    "name": "Me",
+                    "request": { "method": "GET", "url": "{{base_url}}/me" }
+                },
+                {
+                    "name": "Menu",
+                    "request": { "method": "GET", "url": "{{base_url}}/menu" }
+                },
+                {
+                    "name": "Enums",
+                    "request": {
+                        "method": "GET",
+                        "auth": { "type": "noauth" },
+                        "url": "{{base_url}}/enum"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Orders",
+            "item": [
+                {
+                    "name": "List orders",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/order?page=1&per_page=25"
+                    }
+                },
+                {
+                    "name": "Simulate materials",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/order/{{order_id}}/simulasi-bahan"
+                    }
+                },
+                {
+                    "name": "Approve order",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{base_url}}/order/{{order_id}}/setujui"
+                    }
+                },
+                {
+                    "name": "Order history",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/order/{{order_id}}/riwayat"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Stock and procurement",
+            "item": [
+                {
+                    "name": "Stock list",
+                    "request": { "method": "GET", "url": "{{base_url}}/stok" }
+                },
+                {
+                    "name": "Material shortages",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/kekurangan-bahan"
+                    }
+                },
+                {
+                    "name": "Purchase orders",
+                    "request": { "method": "GET", "url": "{{base_url}}/po" }
+                },
+                {
+                    "name": "Material receipts",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/penerimaan"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Material issue and production",
+            "item": [
+                {
+                    "name": "Issueable WO materials",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/pengeluaran-bahan/bahan-wo?wo_id={{wo_id}}&tahap_id={{tahap_id}}"
+                    }
+                },
+                {
+                    "name": "Production queue",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/produksi/antrean"
+                    }
+                },
+                {
+                    "name": "Production history",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{base_url}}/produksi/log?wo_id={{wo_id}}"
+                    }
+                }
+            ]
+        }
+    ]
+}

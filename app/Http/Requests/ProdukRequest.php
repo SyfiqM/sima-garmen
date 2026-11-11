@@ -14,14 +14,15 @@ class ProdukRequest extends FormRequest
 
     public function rules(): array
     {
-        $id = $this->route('id');
+        $id = $this->route('produk') ?? $this->route('id');
+
         return [
             'kode' => ['nullable', 'string', 'max:30', Rule::unique('produk', 'kode')->ignore($id)],
             'nama' => 'required|string|max:150',
             'kategori' => 'nullable|string|max:50',
             'deskripsi' => 'nullable|string',
             'harga_jual_default' => 'nullable|numeric|min:0',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
         ];
     }
 }

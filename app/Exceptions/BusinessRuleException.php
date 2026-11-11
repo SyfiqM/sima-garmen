@@ -6,19 +6,31 @@ use Exception;
 
 class BusinessRuleException extends Exception
 {
-    protected $codeName;
+    /**
+     * Menyimpan kode error string (misal: 'VALIDASI_GAGAL', 'QTY_MELEBIHI_BATAS')
+     */
+    protected $codeBisnis;
 
-    public function __construct($message, $codeName = 'ATURAN_BISNIS_DILANGGAR', $statusCode = 422)
+    /**
+     * Constructor BusinessRuleException.
+     * 
+     * @param string $message     Pesan error untuk user.
+     * @param string $codeBisnis  Kode string aturan bisnis.
+     * @param int    $httpCode    HTTP Status Code (default 422 Unprocessable Entity).
+     */
+    public function __construct(string $message, string $codeBisnis = 'BUSINESS_ERROR', int $httpCode = 422)
     {
-        parent::__construct($message, $statusCode);
-        $this->codeName = $codeName;
+        // Panggil constructor Exception bawaan PHP (message, code (int))
+        parent::__construct($message, $httpCode);
+        
+        $this->codeBisnis = $codeBisnis;
     }
 
-    public function render($request)
+    /**
+     * Getter untuk mengambil kode bisnis (dipanggil di try-catch pada Test).
+     */
+    public function getCodeBisnis(): string
     {
-        return response()->json([
-            'message' => $this->getMessage(),
-            'code' => $this->codeName,
-        ], $this->getCode() ?: 422);
+        return $this->codeBisnis;
     }
 }
