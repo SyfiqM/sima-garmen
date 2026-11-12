@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\OrderAttachmentController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PackingController;
 use App\Http\Controllers\Api\PenerimaanController;
+use App\Http\Controllers\Api\PengirimanController;
 use App\Http\Controllers\Api\PengaturanController;
 use App\Http\Controllers\Api\PoController;
 use App\Http\Controllers\Api\ProductionController;
@@ -154,6 +155,17 @@ Route::prefix('v1')->group(function () {
         Route::get('work-order/{id}', [WorkOrderController::class, 'show'])->whereNumber('id');
         Route::post('work-order/{id}/tutup-kurang', [WorkOrderController::class, 'tutupKurang']);
 
+
+        // Batch 7 - pengiriman dan surat jalan
+        Route::get('order/{id}/koli-tersedia', [PengirimanController::class, 'koliTersedia'])->whereNumber('id');
+        Route::get('pengiriman', [PengirimanController::class, 'index']);
+        Route::post('pengiriman', [PengirimanController::class, 'store']);
+        Route::get('pengiriman/{id}', [PengirimanController::class, 'show'])->whereNumber('id');
+        Route::post('pengiriman/{id}/kirim', [PengirimanController::class, 'kirim']);
+        Route::post('pengiriman/{id}/diterima', [PengirimanController::class, 'diterima']);
+        Route::post('pengiriman/{id}/batal', [PengirimanController::class, 'batal']);
+        Route::get('pengiriman/{id}/cetak', [PengirimanController::class, 'cetak']);
+        Route::get('pengiriman/{id}/bukti', [PengirimanController::class, 'bukti']);
 
         $masterUmum = ['pelanggan', 'supplier', 'ukuran', 'warna', 'satuan', 'jenis-cacat', 'line-produksi', 'tahap'];
         Route::prefix('{tipe_master}')->whereIn('tipe_master', $masterUmum)->group(function () {

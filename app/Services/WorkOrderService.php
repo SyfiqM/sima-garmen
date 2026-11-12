@@ -134,16 +134,8 @@ class WorkOrderService
                        'catatan_penutupan' => 'Ditutup otomatis oleh sistem karena produksi selesai.'
                    ]);
 
-            // 3. Status order: siap_kirim (atau dikirim_sebagian bila sudah ada koli terkirim).
-            //    Order yang dihentikan tidak diubah statusnya.
-            $order = $wo->order;
-            if ($order->status !== OrderStatus::Dihentikan) {
-                $order->update([
-                    'status' => $order->status === OrderStatus::DikirimSebagian
-                        ? OrderStatus::DikirimSebagian
-                        : OrderStatus::SiapKirim,
-                ]);
-            }
+            // 3. Status order diturunkan dari produksi dan pengiriman (OrderStatusService).
+            app(OrderStatusService::class)->hitungUlang($wo->order);
         }
     }
 
@@ -191,13 +183,11 @@ class WorkOrderService
                    ]);
 
             // 3. Update Order
-            //    Status order tidak diturunkan bila sudah dikirim sebagian atau dihentikan.
+            //    Status order diturunkan oleh OrderStatusService (tidak menurunkan dikirim_sebagian
+            //    atau order yang dihentikan).
             $order = $wo->order;
-            $dataOrder = ['ditutup_kurang' => 1, 'alasan_tutup_kurang' => $alasan];
-            if (! in_array($order->status, [OrderStatus::DikirimSebagian, OrderStatus::Dihentikan], true)) {
-                $dataOrder['status'] = 'siap_kirim';
-            }
-            $order->update($dataOrder);
+            $order->update(['ditutup_kurang' => 1, 'alasan_tutup_kurang' => $alasan]);
+            app(OrderStatusService::class)->hitungUlang($order, $userId);
 
             Audit::log($userId, 'wo.tutup_kurang', 'WorkOrder', $wo->id, ['status' => 'aktif'], ['status' => 'ditutup_kurang'], $alasan);
 
