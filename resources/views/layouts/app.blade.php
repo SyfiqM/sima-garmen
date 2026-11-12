@@ -1,8 +1,8 @@
 @php
     $user = auth()->user();
-    $menu = \App\Support\Menu::for($user);
-    $unread = $user ? $user->unreadNotifications()->count() : 0;
-@endphp
+    $menu = \App\Support\Menu::getForRole($user->role->value);
+    $unread = $user->unreadNotifications()->count();
+@endphp 
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -27,26 +27,18 @@
             <div class="text-xs text-gray-400">{{ $user->role->label() }}</div>
         </div>
 
-        <nav class="space-y-5 p-3">
-            @foreach ($menu as $group)
-                <div>
-                    <div class="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500">{{ $group['title'] }}</div>
-                    @foreach ($group['items'] as $item)
-                        @if ($item['url'])
-                            <a href="{{ $item['url'] }}"
-                               class="block rounded-md px-3 py-2 text-sm {{ $item['active'] ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white' }}">
-                                {{ $item['label'] }}
-                            </a>
-                        @else
-                            <div class="flex cursor-not-allowed items-center justify-between rounded-md px-3 py-2 text-sm text-gray-600">
-                                <span>{{ $item['label'] }}</span>
-                                <span class="rounded bg-gray-800 px-1.5 py-0.5 text-[10px] uppercase text-gray-500">segera</span>
-                            </div>
-                        @endif
-                    @endforeach
-                </div>
-            @endforeach
-        </nav>
+        
+<nav class="space-y-1 p-3">
+    @foreach ($menu as $item)
+        <a href="{{ url($item['path']) }}"
+            class="block rounded-md px-3 py-2 text-sm
+            {{ request()->is(ltrim($item['path'], '/')) ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white' }}">
+
+            {{ $item['label'] }}
+        </a>
+    @endforeach
+</nav>
+
     </aside>
 
     {{-- Konten --}}

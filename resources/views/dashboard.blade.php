@@ -15,18 +15,27 @@
         @endforeach
     </div>
 
-    <x-ui.card title="Akses Cepat" class="mt-6">
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            @foreach ($menu as $group)
-                @foreach ($group['items'] as $item)
-                    @continue(! $item['url'] || $item['label'] === 'Dashboard')
-                    <a href="{{ $item['url'] }}" class="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:border-indigo-300 hover:bg-indigo-50">
-                        <div class="text-[11px] uppercase tracking-wide text-gray-400">{{ $group['title'] }}</div>
-                        {{ $item['label'] }}
-                    </a>
-                @endforeach
-            @endforeach
-        </div>
-        <p class="mt-4 text-xs text-gray-400">Dashboard lengkap per role (grafik, WIP, KPI) dibangun pada Batch 8. Menu bertanda "segera" aktif seiring batch berikutnya.</p>
-    </x-ui.card>
+    
+<x-ui.card title="Akses Cepat" class="mt-6">
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        @foreach ($menu as $item)
+            @continue($item['path'] === '/dashboard')
+
+            <a href="{{ url($item['path']) }}"
+                class="rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:border-indigo-300 hover:bg-indigo-50">
+
+                <div class="text-[11px] uppercase tracking-wide text-gray-400">
+                    {{ $item['icon'] }}
+                </div>
+
+                {{ $item['label'] }}
+            </a>
+        @endforeach
+    </div>
+
+    <p class="mt-4 text-xs text-gray-400">
+        Dashboard lengkap per role (grafik, WIP, KPI) dibangun pada Batch 8.
+        Menu bertanda "segera" aktif seiring batch berikutnya.
+    </p>
+</x-ui.card>
 </x-app-layout>

@@ -32,7 +32,7 @@ class DashboardController extends Controller
 
         return view('dashboard', [
             'stat' => $stat,
-            'menu' => Menu::for($request->user()),
+            'menu' => Menu::getForRole($request->user()->role->value),
         ]);
     }
 }
