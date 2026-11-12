@@ -1,146 +1,4955 @@
 {
-    "info": {
-        "name": "SIMA Garmen API",
-        "description": "Alur inti API Batch 1B sampai Batch 5.",
-        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-    },
-    "auth": {
-        "type": "bearer",
-        "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
-    },
-    "variable": [
-        { "key": "base_url", "value": "http://127.0.0.1:8000/api/v1" },
-        { "key": "token", "value": "" },
-        { "key": "order_id", "value": "1" },
-        { "key": "wo_id", "value": "1" },
-        { "key": "tahap_id", "value": "1" },
-        { "key": "wo_item_id", "value": "1" }
-    ],
-    "item": [
-        {
-            "name": "Auth and profile",
-            "item": [
-                {
-                    "name": "Login",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            { "key": "Accept", "value": "application/json" },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"login\": \"admin\",\n  \"password\": \"admin12345\",\n  \"device_name\": \"postman\"\n}"
-                        },
-                        "url": "{{base_url}}/auth/login"
-                    }
-                },
-                {
-                    "name": "Me",
-                    "request": { "method": "GET", "url": "{{base_url}}/me" }
-                },
-                {
-                    "name": "Menu",
-                    "request": { "method": "GET", "url": "{{base_url}}/menu" }
-                },
-                {
-                    "name": "Enums",
-                    "request": {
-                        "method": "GET",
-                        "auth": { "type": "noauth" },
-                        "url": "{{base_url}}/enum"
-                    }
-                }
-            ]
-        },
-        {
-            "name": "Orders",
-            "item": [
-                {
-                    "name": "List orders",
-                    "request": {
-                        "method": "GET",
-                        "url": "{{base_url}}/order?page=1&per_page=25"
-                    }
-                },
-                {
-                    "name": "Simulate materials",
-                    "request": {
-                        "method": "GET",
-                        "url": "{{base_url}}/order/{{order_id}}/simulasi-bahan"
-                    }
-                },
-                {
-                    "name": "Approve order",
-                    "request": {
-                        "method": "POST",
-                        "url": "{{base_url}}/order/{{order_id}}/setujui"
-                    }
-                },
-                {
-                    "name": "Order history",
-                    "request": {
-                        "method": "GET",
-                        "url": "{{base_url}}/order/{{order_id}}/riwayat"
-                    }
-                }
-            ]
-        },
-        {
-            "name": "Stock and procurement",
-            "item": [
-                {
-                    "name": "Stock list",
-                    "request": { "method": "GET", "url": "{{base_url}}/stok" }
-                },
-                {
-                    "name": "Material shortages",
-                    "request": {
-                        "method": "GET",
-                        "url": "{{base_url}}/kekurangan-bahan"
-                    }
-                },
-                {
-                    "name": "Purchase orders",
-                    "request": { "method": "GET", "url": "{{base_url}}/po" }
-                },
-                {
-                    "name": "Material receipts",
-                    "request": {
-                        "method": "GET",
-                        "url": "{{base_url}}/penerimaan"
-                    }
-                }
-            ]
-        },
-        {
-            "name": "Material issue and production",
-            "item": [
-                {
-                    "name": "Issueable WO materials",
-                    "request": {
-                        "method": "GET",
-                        "url": "{{base_url}}/pengeluaran-bahan/bahan-wo?wo_id={{wo_id}}&tahap_id={{tahap_id}}"
-                    }
-                },
-                {
-                    "name": "Production queue",
-                    "request": {
-                        "method": "GET",
-                        "url": "{{base_url}}/produksi/antrean"
-                    }
-                },
-                {
-                    "name": "Production history",
-                    "request": {
-                        "method": "GET",
-                        "url": "{{base_url}}/produksi/log?wo_id={{wo_id}}"
-                    }
-                }
-            ]
+ "info": {
+  "name": "SIMA Garmen API",
+  "description": "Koleksi lengkap Batch 1B sampai Batch 8. Jalankan \"Login\" lebih dulu; token tersimpan otomatis. Request pembuatan (order, PO, penerimaan, opname, pengeluaran, QC, packing, pengiriman) menyimpan ID hasilnya ke environment.",
+  "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+ },
+ "auth": {
+  "type": "bearer",
+  "bearer": [
+   {
+    "key": "token",
+    "value": "{{token}}",
+    "type": "string"
+   }
+  ]
+ },
+ "item": [
+  {
+   "name": "Auth dan Profil",
+   "description": "Login, logout, profil, dan ganti password (Batch 1B).",
+   "item": [
+    {
+     "name": "POST Login memakai username atau email",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/auth/login",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "auth",
+        "login"
+       ]
+      },
+      "description": "Hak akses: publik.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"login\": \"admin\",\n  \"password\": \"admin12345\",\n  \"device_name\": \"web\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
         }
-    ]
+       }
+      },
+      "auth": {
+       "type": "noauth"
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "const json = pm.response.json();",
+         "if (json.data && json.data.token) { pm.environment.set('token', json.data.token); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "POST Cabut token aktif",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/auth/logout",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "auth",
+        "logout"
+       ]
+      },
+      "description": "Hak akses: semua."
+     }
+    },
+    {
+     "name": "GET User aktif dan menu sesuai role",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/me",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "me"
+       ]
+      },
+      "description": "Hak akses: semua."
+     }
+    },
+    {
+     "name": "PUT Ubah profil sendiri",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/me/profil",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "me",
+        "profil"
+       ]
+      },
+      "description": "Hak akses: semua.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"name\": \"Budi\",\n  \"email\": \"budi@contoh.id\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "PUT Ganti password sendiri",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/me/password",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "me",
+        "password"
+       ]
+      },
+      "description": "Hak akses: semua.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"password_lama\": \"password123\",\n  \"password_baru\": \"passwordBaru1\",\n  \"password_baru_confirmation\": \"passwordBaru1\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "Sistem",
+   "description": "Enum, menu, notifikasi, opsi dropdown, dan pengaturan umum (Batch 1B-2).",
+   "item": [
+    {
+     "name": "GET Daftar enum (label tampilan status)",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/enum",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "enum"
+       ]
+      },
+      "description": "Status pada semua respons dikirim sebagai **string nilai** (mis. `\"produksi\"`). Ambil label tampilan dari endpoint ini: setiap enum berbentuk `[{value, label}]`. Kunci: roles, order_status, prioritas, jenis_bahan, tahap, work_order_status, work_order_tahap_status, purchase_order_status, pengeluaran_tipe, mutasi_tipe, dokumen_status, opname_status, packing_status, pengiriman_status, repair_status, tindakan_cacat.\n\nHak akses: publik.",
+      "auth": {
+       "type": "noauth"
+      }
+     }
+    },
+    {
+     "name": "GET Pengaturan umum yang boleh dibaca publik",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengaturan-umum",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengaturan-umum"
+       ]
+      },
+      "description": "Hak akses: publik.",
+      "auth": {
+       "type": "noauth"
+      }
+     }
+    },
+    {
+     "name": "GET Menu untuk role pemanggil",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/menu",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "menu"
+       ]
+      },
+      "description": "Hak akses: semua."
+     }
+    },
+    {
+     "name": "GET Daftar notifikasi (paginasi)",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/notifikasi",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "notifikasi"
+       ],
+       "query": [
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: semua."
+     }
+    },
+    {
+     "name": "GET Jumlah notifikasi belum dibaca",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/notifikasi/belum-dibaca",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "notifikasi",
+        "belum-dibaca"
+       ]
+      },
+      "description": "Hak akses: semua."
+     }
+    },
+    {
+     "name": "POST Tandai satu notifikasi dibaca",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/notifikasi/{{notifikasi_id}}/baca",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "notifikasi",
+        "{{notifikasi_id}}",
+        "baca"
+       ]
+      },
+      "description": "Hak akses: semua."
+     }
+    },
+    {
+     "name": "POST Tandai semua notifikasi dibaca",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/notifikasi/baca-semua",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "notifikasi",
+        "baca-semua"
+       ]
+      },
+      "description": "Hak akses: semua."
+     }
+    },
+    {
+     "name": "GET Opsi dropdown ringan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/opsi/{{opsi_nama}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "opsi",
+        "{{opsi_nama}}"
+       ]
+      },
+      "description": "`nama`: pelanggan, supplier, bahan, produk, jenis-cacat, line-produksi, ukuran, warna, satuan, tahap, supervisor-per-tahap. Role yang boleh berbeda per `nama`.\n\nHak akses: sesuai jenis opsi."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Master Data",
+   "description": "Master data, bahan, produk, dan BOM (Batch 2).",
+   "item": [
+    {
+     "name": "GET Daftar master data",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/{{tipe_master}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "{{tipe_master}}"
+       ],
+       "query": [
+        {
+         "key": "search",
+         "value": "",
+         "disabled": true,
+         "description": "Cari pada nama."
+        },
+        {
+         "key": "is_active",
+         "value": "",
+         "disabled": true
+        },
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "`tipe_master`: pelanggan, supplier, ukuran, warna, satuan, jenis-cacat, line-produksi, tahap.\n\nHak akses: sesuai matriks 3.2."
+     }
+    },
+    {
+     "name": "POST Tambah master data",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/{{tipe_master}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "{{tipe_master}}"
+       ]
+      },
+      "description": "Hak akses: sesuai matriks 3.2.",
+      "body": {
+       "mode": "raw",
+       "raw": "{}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "GET Detail master data",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/{{tipe_master}}/{{id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "{{tipe_master}}",
+        "{{id}}"
+       ]
+      },
+      "description": "Hak akses: sesuai matriks 3.2."
+     }
+    },
+    {
+     "name": "PUT Ubah master data",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/{{tipe_master}}/{{id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "{{tipe_master}}",
+        "{{id}}"
+       ]
+      },
+      "description": "Hak akses: sesuai matriks 3.2.",
+      "body": {
+       "mode": "raw",
+       "raw": "{}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "DELETE Hapus master data",
+     "request": {
+      "method": "DELETE",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/{{tipe_master}}/{{id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "{{tipe_master}}",
+        "{{id}}"
+       ]
+      },
+      "description": "Hak akses: sesuai matriks 3.2."
+     }
+    },
+    {
+     "name": "POST Aktifkan master data",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/{{tipe_master}}/{{id}}/aktifkan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "{{tipe_master}}",
+        "{{id}}",
+        "aktifkan"
+       ]
+      },
+      "description": "Hak akses: sesuai matriks 3.2."
+     }
+    },
+    {
+     "name": "POST Nonaktifkan master data",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/{{tipe_master}}/{{id}}/nonaktifkan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "{{tipe_master}}",
+        "{{id}}",
+        "nonaktifkan"
+       ]
+      },
+      "description": "Hak akses: sesuai matriks 3.2."
+     }
+    },
+    {
+     "name": "GET Daftar bahan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/bahan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "bahan"
+       ],
+       "query": [
+        {
+         "key": "search",
+         "value": "",
+         "disabled": true
+        },
+        {
+         "key": "is_active",
+         "value": "",
+         "disabled": true
+        },
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang, pimpinan."
+     }
+    },
+    {
+     "name": "POST Tambah bahan",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/bahan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "bahan"
+       ]
+      },
+      "description": "Hak akses: admin, gudang.",
+      "body": {
+       "mode": "raw",
+       "raw": "{}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "GET Detail bahan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/bahan/{{bahan_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "bahan",
+        "{{bahan_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang, pimpinan."
+     }
+    },
+    {
+     "name": "PUT Ubah bahan",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/bahan/{{bahan_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "bahan",
+        "{{bahan_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, gudang.",
+      "body": {
+       "mode": "raw",
+       "raw": "{}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "DELETE Hapus bahan",
+     "request": {
+      "method": "DELETE",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/bahan/{{bahan_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "bahan",
+        "{{bahan_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, gudang."
+     }
+    },
+    {
+     "name": "POST Aktifkan bahan",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/bahan/{{bahan_id}}/aktifkan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "bahan",
+        "{{bahan_id}}",
+        "aktifkan"
+       ]
+      },
+      "description": "Hak akses: admin, gudang."
+     }
+    },
+    {
+     "name": "POST Nonaktifkan bahan",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/bahan/{{bahan_id}}/nonaktifkan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "bahan",
+        "{{bahan_id}}",
+        "nonaktifkan"
+       ]
+      },
+      "description": "Hak akses: admin, gudang."
+     }
+    },
+    {
+     "name": "GET Daftar produk",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/produk",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "produk"
+       ],
+       "query": [
+        {
+         "key": "search",
+         "value": "",
+         "disabled": true
+        },
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer, staf_order, pimpinan."
+     }
+    },
+    {
+     "name": "POST Tambah produk",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/produk",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "produk"
+       ]
+      },
+      "description": "Hak akses: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "GET Detail produk",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/produk/{{produk_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "produk",
+        "{{produk_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, staf_order, pimpinan."
+     }
+    },
+    {
+     "name": "PUT Ubah produk",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/produk/{{produk_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "produk",
+        "{{produk_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "DELETE Hapus produk",
+     "request": {
+      "method": "DELETE",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/produk/{{produk_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "produk",
+        "{{produk_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, manajer."
+     }
+    },
+    {
+     "name": "POST Aktifkan produk",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/produk/{{produk_id}}/aktifkan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "produk",
+        "{{produk_id}}",
+        "aktifkan"
+       ]
+      },
+      "description": "Hak akses: admin, manajer."
+     }
+    },
+    {
+     "name": "POST Nonaktifkan produk",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/produk/{{produk_id}}/nonaktifkan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "produk",
+        "{{produk_id}}",
+        "nonaktifkan"
+       ]
+      },
+      "description": "Hak akses: admin, manajer."
+     }
+    },
+    {
+     "name": "GET Daftar baris BOM produk",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/produk/{{produk_id}}/bom",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "produk",
+        "{{produk_id}}",
+        "bom"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, pimpinan."
+     }
+    },
+    {
+     "name": "POST Tambah baris BOM",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/produk/{{produk_id}}/bom",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "produk",
+        "{{produk_id}}",
+        "bom"
+       ]
+      },
+      "description": "Hak akses: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "PUT Ubah baris BOM",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/bom/{{bom_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "bom",
+        "{{bom_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "DELETE Hapus baris BOM",
+     "request": {
+      "method": "DELETE",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/bom/{{bom_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "bom",
+        "{{bom_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, manajer."
+     }
+    },
+    {
+     "name": "POST Salin BOM dari produk lain",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/produk/{{produk_id}}/bom/salin-dari/{{produk_asal_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "produk",
+        "{{produk_id}}",
+        "bom",
+        "salin-dari",
+        "{{produk_asal_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, manajer."
+     }
+    },
+    {
+     "name": "GET Pratinjau kebutuhan bahan per ukuran, warna, dan qty",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/produk/{{produk_id}}/bom/pratinjau",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "produk",
+        "{{produk_id}}",
+        "bom",
+        "pratinjau"
+       ],
+       "query": [
+        {
+         "key": "ukuran",
+         "value": "1",
+         "disabled": true,
+         "description": "ID ukuran."
+        },
+        {
+         "key": "warna",
+         "value": "1",
+         "disabled": true,
+         "description": "ID warna."
+        },
+        {
+         "key": "qty",
+         "value": "100",
+         "disabled": true,
+         "description": "Jumlah pcs."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer, pimpinan."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Pengguna dan Pengaturan",
+   "description": "Pengguna, pengaturan sistem, dan audit log (Batch 2).",
+   "item": [
+    {
+     "name": "GET Daftar pengguna",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengguna",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengguna"
+       ],
+       "query": [
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin."
+     }
+    },
+    {
+     "name": "POST Tambah pengguna",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengguna",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengguna"
+       ]
+      },
+      "description": "Hak akses: admin.",
+      "body": {
+       "mode": "raw",
+       "raw": "{}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "GET Detail pengguna",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengguna/{{user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengguna",
+        "{{user_id}}"
+       ]
+      },
+      "description": "Hak akses: admin."
+     }
+    },
+    {
+     "name": "PUT Ubah pengguna",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengguna/{{user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengguna",
+        "{{user_id}}"
+       ]
+      },
+      "description": "Hak akses: admin.",
+      "body": {
+       "mode": "raw",
+       "raw": "{}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "DELETE Hapus pengguna",
+     "request": {
+      "method": "DELETE",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengguna/{{user_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengguna",
+        "{{user_id}}"
+       ]
+      },
+      "description": "Hak akses: admin."
+     }
+    },
+    {
+     "name": "POST Reset password pengguna",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengguna/{{user_id}}/reset-password",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengguna",
+        "{{user_id}}",
+        "reset-password"
+       ]
+      },
+      "description": "Hak akses: admin."
+     }
+    },
+    {
+     "name": "POST Aktifkan pengguna",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengguna/{{user_id}}/aktifkan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengguna",
+        "{{user_id}}",
+        "aktifkan"
+       ]
+      },
+      "description": "Hak akses: admin."
+     }
+    },
+    {
+     "name": "POST Nonaktifkan pengguna",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengguna/{{user_id}}/nonaktifkan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengguna",
+        "{{user_id}}",
+        "nonaktifkan"
+       ]
+      },
+      "description": "Hak akses: admin."
+     }
+    },
+    {
+     "name": "GET Daftar pengaturan sistem",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengaturan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengaturan"
+       ]
+      },
+      "description": "Hak akses: admin."
+     }
+    },
+    {
+     "name": "PUT Ubah pengaturan sekaligus",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengaturan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengaturan"
+       ]
+      },
+      "description": "Hak akses: admin.",
+      "body": {
+       "mode": "raw",
+       "raw": "{}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "GET Audit log (paginasi)",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/audit-log",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "audit-log"
+       ],
+       "query": [
+        {
+         "key": "user_id",
+         "value": "",
+         "disabled": true
+        },
+        {
+         "key": "aksi",
+         "value": "produksi.void",
+         "disabled": true
+        },
+        {
+         "key": "subjek_tipe",
+         "value": "Pengiriman",
+         "disabled": true
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-12",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-12",
+         "disabled": true
+        },
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Order",
+   "description": "Order, persetujuan, revisi, dan lampiran (Batch 3).",
+   "item": [
+    {
+     "name": "GET Daftar order",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order"
+       ],
+       "query": [
+        {
+         "key": "status",
+         "value": "produksi",
+         "disabled": true
+        },
+        {
+         "key": "pelanggan_id",
+         "value": "",
+         "disabled": true
+        },
+        {
+         "key": "prioritas",
+         "value": "normal",
+         "disabled": true
+        },
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer, staf_order, gudang, qc, pimpinan."
+     }
+    },
+    {
+     "name": "POST Buat order (draft)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, staf_order.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"pelanggan_id\": 1,\n  \"no_po_pelanggan\": \"PO-2026-01\",\n  \"tgl_order\": \"2026-11-12\",\n  \"deadline\": \"2026-12-12\",\n  \"prioritas\": \"normal\",\n  \"alamat_kirim\": \"Jl. Contoh No. 1\",\n  \"catatan\": \"Catatan\",\n  \"items\": [\n    {\n      \"produk_id\": 1,\n      \"warna_id\": 1,\n      \"ukuran_id\": 1,\n      \"qty\": 100,\n      \"harga_satuan\": 55000,\n      \"spesifikasi\": \"Label premium\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "const json = pm.response.json();",
+         "if (pm.response.code === 201 && json.data && json.data.id) { pm.environment.set('order_id', json.data.id); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "GET Detail order beserta item",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, staf_order, gudang, qc, pimpinan."
+     }
+    },
+    {
+     "name": "PUT Ubah order (hanya draft atau ditolak)",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}"
+       ]
+      },
+      "description": "Hak akses: pembuat order, admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"pelanggan_id\": 1,\n  \"no_po_pelanggan\": \"PO-2026-01\",\n  \"tgl_order\": \"2026-11-12\",\n  \"deadline\": \"2026-12-12\",\n  \"prioritas\": \"normal\",\n  \"alamat_kirim\": \"Jl. Contoh No. 1\",\n  \"catatan\": \"Catatan\",\n  \"items\": [\n    {\n      \"produk_id\": 1,\n      \"warna_id\": 1,\n      \"ukuran_id\": 1,\n      \"qty\": 100,\n      \"harga_satuan\": 55000,\n      \"spesifikasi\": \"Label premium\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "DELETE Hapus order draft",
+     "request": {
+      "method": "DELETE",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}"
+       ]
+      },
+      "description": "Hak akses: pembuat order, admin, manajer."
+     }
+    },
+    {
+     "name": "GET Simulasi kebutuhan bahan dan ketersediaan stok",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/simulasi-bahan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "simulasi-bahan"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, staf_order, gudang, qc, pimpinan."
+     }
+    },
+    {
+     "name": "GET Riwayat perubahan status dan aksi order",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/riwayat",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "riwayat"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, staf_order, gudang, qc, pimpinan."
+     }
+    },
+    {
+     "name": "GET Lembar order (PDF)",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/cetak",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "cetak"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, staf_order, gudang, qc, pimpinan."
+     }
+    },
+    {
+     "name": "GET Daftar lampiran order",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/lampiran",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "lampiran"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, staf_order, gudang, qc, pimpinan."
+     }
+    },
+    {
+     "name": "POST Unggah lampiran order",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/lampiran",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "lampiran"
+       ]
+      },
+      "description": "Hak akses: pembuat order, admin, manajer.",
+      "body": {
+       "mode": "formdata",
+       "formdata": [
+        {
+         "key": "file",
+         "type": "file",
+         "src": []
+        },
+        {
+         "key": "keterangan",
+         "type": "text",
+         "value": "Desain"
+        }
+       ]
+      }
+     }
+    },
+    {
+     "name": "GET Unduh lampiran (butuh token)",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/lampiran/{{lampiran_id}}/unduh",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "lampiran",
+        "{{lampiran_id}}",
+        "unduh"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, staf_order, gudang, qc, pimpinan."
+     }
+    },
+    {
+     "name": "DELETE Hapus lampiran",
+     "request": {
+      "method": "DELETE",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/lampiran/{{lampiran_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "lampiran",
+        "{{lampiran_id}}"
+       ]
+      },
+      "description": "Hak akses: pembuat order, admin, manajer."
+     }
+    },
+    {
+     "name": "POST Order: ajukan (draft atau ditolak menjadi diajukan; butuh minimal satu item serta pelanggan dan produk aktif)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/ajukan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "ajukan"
+       ]
+      },
+      "description": "Hak akses: pembuat order, admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "POST Order: tarik (diajukan kembali menjadi draft)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/tarik",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "tarik"
+       ]
+      },
+      "description": "Hak akses: pembuat order, admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "POST Order: perbaiki (ditolak kembali menjadi draft)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/perbaiki",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "perbaiki"
+       ]
+      },
+      "description": "Hak akses: pembuat order, admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "POST Order: setujui (diajukan menjadi menunggu_bahan atau siap_produksi; membuat WO, snapshot BOM, dan reservasi bahan)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/setujui",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "setujui"
+       ]
+      },
+      "description": "Hak akses: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "POST Order: tolak (diajukan menjadi ditolak)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/tolak",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "tolak"
+       ]
+      },
+      "description": "Hak akses: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "POST Order: revisi (menunggu_bahan atau siap_produksi: WO dibatalkan, reservasi dilepas, order kembali draft)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/revisi",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "revisi"
+       ]
+      },
+      "description": "Hak akses: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "POST Order: batalkan (draft sampai siap_produksi menjadi dibatalkan; reservasi dilepas)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/batalkan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "batalkan"
+       ]
+      },
+      "description": "Hak akses: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "POST Order: hentikan (status produksi menjadi dihentikan; WO dihentikan dan reservasi dilepas)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/hentikan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "hentikan"
+       ]
+      },
+      "description": "Hak akses: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "PUT Ubah deadline (status menunggu_bahan sampai dikirim_sebagian)",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/deadline",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "deadline"
+       ]
+      },
+      "description": "Hak akses: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"deadline\": \"2026-12-20\",\n  \"alasan\": \"Permintaan pelanggan\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "PUT Ubah prioritas setelah disetujui",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/prioritas",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "prioritas"
+       ]
+      },
+      "description": "Hak akses: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"prioritas\": \"normal\",\n  \"alasan\": \"Pelanggan mendesak\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "GET Koli berstatus tersedia untuk dibuatkan surat jalan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/order/{{order_id}}/koli-tersedia",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "order",
+        "{{order_id}}",
+        "koli-tersedia"
+       ]
+      },
+      "description": "Dipakai halaman Pengiriman: pilih koli lalu `POST /pengiriman`.\n\nHak akses: admin, manajer, staf_order, gudang, pimpinan."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Work Order",
+   "description": "Daftar dan detail work order, tutup kurang, tahap produksi (Batch 3, 5, 6).",
+   "item": [
+    {
+     "name": "GET Daftar work order",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/work-order",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "work-order"
+       ],
+       "query": [
+        {
+         "key": "status",
+         "value": "aktif",
+         "disabled": true
+        },
+        {
+         "key": "order_id",
+         "value": "",
+         "disabled": true
+        },
+        {
+         "key": "search",
+         "value": "WO-2611",
+         "disabled": true,
+         "description": "Cari no WO atau no order."
+        },
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Supervisor hanya WO yang memiliki tahapnya; QC hanya WO yang sudah menghasilkan barang di finishing.\n\nHak akses: semua role."
+     }
+    },
+    {
+     "name": "GET Detail WO: item beserta counter, tahap, bahan, dan koli",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/work-order/{{wo_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "work-order",
+        "{{wo_id}}"
+       ]
+      },
+      "description": "Setiap `wo_items[]` menyertakan `cutting_boleh`, `sewing_tersedia`, `finishing_tersedia`, `qc_tersedia`, `packing_tersedia`, dan `kirim_tersedia`.\n\nHak akses: semua role."
+     }
+    },
+    {
+     "name": "POST Tutup WO kurang (sisa tidak diproduksi)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/work-order/{{wo_id}}/tutup-kurang",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "work-order",
+        "{{wo_id}}",
+        "tutup-kurang"
+       ]
+      },
+      "description": "Syarat: tidak ada barang menunggu QC dan tidak ada repair terbuka. WO menjadi `ditutup_kurang`; status order diturunkan otomatis dari pengiriman.\n\nHak akses: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Sisa 10 pcs dibatalkan pelanggan\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "POST Tutup tahap produksi",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/work-order/{{wo_id}}/tahap/{{tahap_kode}}/tutup",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "work-order",
+        "{{wo_id}}",
+        "tahap",
+        "{{tahap_kode}}",
+        "tutup"
+       ]
+      },
+      "description": "`kode`: cutting, sewing, finishing. Alasan wajib bila masih ada antrean.\n\nHak akses: admin, manajer, supervisor tahap tersebut.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "POST Buka kembali tahap produksi",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/work-order/{{wo_id}}/tahap/{{tahap_kode}}/buka",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "work-order",
+        "{{wo_id}}",
+        "tahap",
+        "{{tahap_kode}}",
+        "buka"
+       ]
+      },
+      "description": "Hak akses: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "POST Naikkan batas potong",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/work-order/{{wo_id}}/tambah-potong",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "work-order",
+        "{{wo_id}}",
+        "tambah-potong"
+       ]
+      },
+      "description": "Hak akses: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"wo_item_id\": 1,\n  \"qty\": 5,\n  \"alasan\": \"Reject cutting 5 pcs\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "Stok dan Pembelian",
+   "description": "Stok, PO, penerimaan bahan, dan opname (Batch 4).",
+   "item": [
+    {
+     "name": "GET Stok bahan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/stok",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "stok"
+       ],
+       "query": [
+        {
+         "key": "di_bawah_minimum",
+         "value": "",
+         "disabled": true
+        },
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang, pimpinan."
+     }
+    },
+    {
+     "name": "GET Kartu stok (mutasi) satu bahan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/bahan/{{bahan_id}}/kartu-stok",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "bahan",
+        "{{bahan_id}}",
+        "kartu-stok"
+       ],
+       "query": [
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang, pimpinan."
+     }
+    },
+    {
+     "name": "GET Kekurangan bahan untuk order menunggu_bahan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/kekurangan-bahan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "kekurangan-bahan"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang."
+     }
+    },
+    {
+     "name": "GET Daftar PO",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/po",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "po"
+       ],
+       "query": [
+        {
+         "key": "status",
+         "value": "draft",
+         "disabled": true
+        },
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang, pimpinan."
+     }
+    },
+    {
+     "name": "POST Buat PO (draft)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/po",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "po"
+       ]
+      },
+      "description": "Hak akses: admin, gudang.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"supplier_id\": 1,\n  \"tgl_po\": \"2026-11-12\",\n  \"tgl_estimasi_tiba\": \"2026-11-19\",\n  \"catatan\": \"Catatan\",\n  \"items\": [\n    {\n      \"bahan_id\": 1,\n      \"qty_pesan\": 100,\n      \"harga_satuan\": 25000,\n      \"keterangan\": \"Kain\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "const json = pm.response.json();",
+         "if (pm.response.code === 201 && json.data && json.data.id) { pm.environment.set('po_id', json.data.id); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "POST Buat PO otomatis dari kekurangan bahan",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/po/dari-kekurangan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "po",
+        "dari-kekurangan"
+       ]
+      },
+      "description": "Hak akses: admin, gudang.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"supplier_id\": 1,\n  \"tgl_po\": \"2026-11-12\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "GET Detail PO",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/po/{{po_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "po",
+        "{{po_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang, pimpinan."
+     }
+    },
+    {
+     "name": "PUT Ubah PO (hanya draft)",
+     "request": {
+      "method": "PUT",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/po/{{po_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "po",
+        "{{po_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, gudang.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"supplier_id\": 1,\n  \"tgl_po\": \"2026-11-12\",\n  \"tgl_estimasi_tiba\": \"2026-11-19\",\n  \"catatan\": \"Catatan\",\n  \"items\": [\n    {\n      \"bahan_id\": 1,\n      \"qty_pesan\": 100,\n      \"harga_satuan\": 25000,\n      \"keterangan\": \"Kain\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "DELETE Hapus PO draft",
+     "request": {
+      "method": "DELETE",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/po/{{po_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "po",
+        "{{po_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, gudang."
+     }
+    },
+    {
+     "name": "POST Pesan PO (draft menjadi dipesan)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/po/{{po_id}}/pesan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "po",
+        "{{po_id}}",
+        "pesan"
+       ]
+      },
+      "description": "Hak akses: admin, gudang."
+     }
+    },
+    {
+     "name": "POST Batalkan PO yang belum ada penerimaan",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/po/{{po_id}}/batalkan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "po",
+        "{{po_id}}",
+        "batalkan"
+       ]
+      },
+      "description": "Hak akses: admin, gudang.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "GET Daftar penerimaan bahan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/penerimaan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "penerimaan"
+       ],
+       "query": [
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang, pimpinan."
+     }
+    },
+    {
+     "name": "POST Catat penerimaan bahan",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/penerimaan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "penerimaan"
+       ]
+      },
+      "description": "Menambah stok dan membuat mutasi. Bila ada kekurangan bahan, reservasi dialokasikan ulang.\n\nHak akses: admin, gudang.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"po_id\": 1,\n  \"alasan_tanpa_po\": \"Pembelian darurat\",\n  \"supplier_id\": 1,\n  \"tgl_terima\": \"2026-11-12\",\n  \"no_sj_supplier\": \"SJ-123\",\n  \"catatan\": \"Catatan\",\n  \"items\": [\n    {\n      \"po_item_id\": 1,\n      \"bahan_id\": 1,\n      \"qty\": 50,\n      \"harga_satuan\": 25000\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "const json = pm.response.json();",
+         "if (pm.response.code === 201 && json.data && json.data.id) { pm.environment.set('penerimaan_id', json.data.id); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "GET Detail penerimaan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/penerimaan/{{penerimaan_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "penerimaan",
+        "{{penerimaan_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang, pimpinan."
+     }
+    },
+    {
+     "name": "POST Void penerimaan (mutasi pembalik)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/penerimaan/{{penerimaan_id}}/void",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "penerimaan",
+        "{{penerimaan_id}}",
+        "void"
+       ]
+      },
+      "description": "Hak akses: admin, gudang.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "GET Daftar stok opname",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/opname",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "opname"
+       ],
+       "query": [
+        {
+         "key": "status",
+         "value": "draft",
+         "disabled": true
+        },
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang."
+     }
+    },
+    {
+     "name": "POST Buat stok opname (draft)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/opname",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "opname"
+       ]
+      },
+      "description": "Hak akses: admin, gudang.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"tanggal\": \"2026-11-12\",\n  \"catatan\": \"Opname akhir bulan\",\n  \"items\": [\n    {\n      \"bahan_id\": 1,\n      \"stok_fisik\": 48.5,\n      \"alasan\": \"Susut\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "const json = pm.response.json();",
+         "if (pm.response.code === 201 && json.data && json.data.id) { pm.environment.set('opname_id', json.data.id); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "GET Detail stok opname",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/opname/{{opname_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "opname",
+        "{{opname_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang."
+     }
+    },
+    {
+     "name": "POST Ajukan opname untuk persetujuan",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/opname/{{opname_id}}/ajukan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "opname",
+        "{{opname_id}}",
+        "ajukan"
+       ]
+      },
+      "description": "Hak akses: admin, gudang."
+     }
+    },
+    {
+     "name": "POST Tolak opname",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/opname/{{opname_id}}/tolak",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "opname",
+        "{{opname_id}}",
+        "tolak"
+       ]
+      },
+      "description": "Hak akses: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "POST Setujui opname dan terapkan penyesuaian stok",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/opname/{{opname_id}}/setujui",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "opname",
+        "{{opname_id}}",
+        "setujui"
+       ]
+      },
+      "description": "Hak akses: admin, manajer."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Pengeluaran Bahan dan Produksi",
+   "description": "Pengeluaran bahan dan input hasil tiga tahap (Batch 5).",
+   "item": [
+    {
+     "name": "GET Daftar pengeluaran bahan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengeluaran-bahan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengeluaran-bahan"
+       ],
+       "query": [
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang, supervisor (tahapnya), pimpinan."
+     }
+    },
+    {
+     "name": "GET Sisa bahan WO per tahap",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengeluaran-bahan/bahan-wo?wo_id=1&tahap_id=1",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengeluaran-bahan",
+        "bahan-wo"
+       ],
+       "query": [
+        {
+         "key": "wo_id",
+         "value": "1",
+         "disabled": false
+        },
+        {
+         "key": "tahap_id",
+         "value": "1",
+         "disabled": false
+        }
+       ]
+      },
+      "description": "Hak akses: admin, gudang, supervisor (tahapnya)."
+     }
+    },
+    {
+     "name": "POST Catat pengeluaran atau retur bahan",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengeluaran-bahan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengeluaran-bahan"
+       ]
+      },
+      "description": "Pengeluaran melebihi reservasi berstatus `menunggu` dan perlu persetujuan Manajer/Admin.\n\nHak akses: admin, gudang.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"wo_id\": 1,\n  \"tahap_id\": 1,\n  \"tipe\": \"keluar\",\n  \"tanggal\": \"2026-11-12\",\n  \"catatan\": \"Catatan\",\n  \"alasan_lebih\": \"Kebutuhan tambahan\",\n  \"items\": [\n    {\n      \"wo_bahan_id\": 1,\n      \"qty\": 12.5,\n      \"alasan_lebih\": \"Kebutuhan tambahan\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "const json = pm.response.json();",
+         "if (pm.response.code === 201 && json.data && json.data.id) { pm.environment.set('pengeluaran_id', json.data.id); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "GET Detail pengeluaran bahan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengeluaran-bahan/{{pengeluaran_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengeluaran-bahan",
+        "{{pengeluaran_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang, supervisor (tahapnya), pimpinan."
+     }
+    },
+    {
+     "name": "POST Setujui pengeluaran melebihi toleransi",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengeluaran-bahan/{{pengeluaran_id}}/setujui",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengeluaran-bahan",
+        "{{pengeluaran_id}}",
+        "setujui"
+       ]
+      },
+      "description": "Hak akses: admin, manajer."
+     }
+    },
+    {
+     "name": "POST Void pengeluaran bahan",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengeluaran-bahan/{{pengeluaran_id}}/void",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengeluaran-bahan",
+        "{{pengeluaran_id}}",
+        "void"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, pembuat dalam batas jam.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "GET Antrean kerja tahap supervisor",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/produksi/antrean",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "produksi",
+        "antrean"
+       ],
+       "query": [
+        {
+         "key": "wo_id",
+         "value": "",
+         "disabled": true,
+         "description": "Filter WO."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, supervisor."
+     }
+    },
+    {
+     "name": "GET Riwayat input produksi",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/produksi/log",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "produksi",
+        "log"
+       ],
+       "query": [
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer, supervisor (tahapnya)."
+     }
+    },
+    {
+     "name": "POST Input hasil dan reject satu tahap",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/produksi/log",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "produksi",
+        "log"
+       ]
+      },
+      "description": "Hak akses: admin, supervisor tahap tersebut.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"wo_id\": 1,\n  \"tahap_id\": 1,\n  \"tanggal\": \"2026-11-12\",\n  \"items\": [\n    {\n      \"wo_item_id\": 1,\n      \"line_id\": 1,\n      \"qty_hasil\": 50,\n      \"qty_reject\": 0,\n      \"jenis_cacat_id\": 1,\n      \"catatan\": \"Catatan\"\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "POST Void input produksi",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/produksi/log/{{log_id}}/void",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "produksi",
+        "log",
+        "{{log_id}}",
+        "void"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, pembuat dalam batas jam.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    }
+   ]
+  },
+  {
+   "name": "QC, Repair, dan Packing",
+   "description": "Inspeksi QC, repair, dan koli (Batch 6).",
+   "item": [
+    {
+     "name": "GET Antrean QC: WO aktif dengan item yang siap diinspeksi",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/qc/antrean",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "qc",
+        "antrean"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, qc."
+     }
+    },
+    {
+     "name": "GET Riwayat inspeksi",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/qc/inspeksi",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "qc",
+        "inspeksi"
+       ],
+       "query": [
+        {
+         "key": "wo_id",
+         "value": "",
+         "disabled": true
+        },
+        {
+         "key": "status",
+         "value": "aktif",
+         "disabled": true
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-12",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-12",
+         "disabled": true
+        },
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer, qc, pimpinan."
+     }
+    },
+    {
+     "name": "POST Catat inspeksi QC",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/qc/inspeksi",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "qc",
+        "inspeksi"
+       ]
+      },
+      "description": "Aturan: `qty_diperiksa = qty_lolos + qty_repair + qty_reject` dan `qty_diperiksa <= qc_tersedia`. Repair membuat antrean repair dan notifikasi ke supervisor tahap tujuan.\n\nHak akses: admin, qc.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"wo_id\": 1,\n  \"tanggal\": \"2026-11-12\",\n  \"catatan\": \"Catatan\",\n  \"items\": [\n    {\n      \"wo_item_id\": 1,\n      \"qty_diperiksa\": 100,\n      \"qty_lolos\": 90,\n      \"qty_repair\": 6,\n      \"qty_reject\": 4,\n      \"tahap_tujuan_id\": 2,\n      \"cacat\": [\n        {\n          \"jenis_cacat_id\": 1,\n          \"qty\": 6,\n          \"tindakan\": \"repair\"\n        }\n      ]\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "const json = pm.response.json();",
+         "if (pm.response.code === 201 && json.data && json.data.id) { pm.environment.set('qc_id', json.data.id); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "POST Void inspeksi QC",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/qc/inspeksi/{{qc_id}}/void",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "qc",
+        "inspeksi",
+        "{{qc_id}}",
+        "void"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, QC pembuat dalam batas jam.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "GET Antrean repair",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/repair",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "repair"
+       ],
+       "query": [
+        {
+         "key": "status",
+         "value": "open",
+         "disabled": true
+        },
+        {
+         "key": "tahap_id",
+         "value": "",
+         "disabled": true
+        },
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer, supervisor (tahap tujuan), qc, pimpinan."
+     }
+    },
+    {
+     "name": "POST Catat repair selesai (boleh sebagian)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/repair/{{repair_id}}/selesai",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "repair",
+        "{{repair_id}}",
+        "selesai"
+       ]
+      },
+      "description": "Pcs yang selesai kembali ke antrean QC.\n\nHak akses: admin, supervisor tahap tujuan.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"qty_selesai\": 6,\n  \"catatan\": \"Catatan\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "GET Daftar koli",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/packing",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "packing"
+       ],
+       "query": [
+        {
+         "key": "wo_id",
+         "value": "",
+         "disabled": true
+        },
+        {
+         "key": "order_id",
+         "value": "",
+         "disabled": true
+        },
+        {
+         "key": "status",
+         "value": "tersedia",
+         "disabled": true
+        },
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang, supervisor, staf_order, pimpinan."
+     }
+    },
+    {
+     "name": "POST Buat koli dari barang lolos QC",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/packing",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "packing"
+       ]
+      },
+      "description": "Qty per item maks `packing_tersedia = min(qty_qc_lolos, qty_order) - qty_packing`. Bila semua item penuh, WO otomatis `selesai`.\n\nHak akses: admin, supervisor finishing.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"wo_id\": 1,\n  \"tanggal\": \"2026-11-12\",\n  \"berat_kg\": 12.5,\n  \"catatan\": \"Catatan\",\n  \"items\": [\n    {\n      \"wo_item_id\": 1,\n      \"qty\": 50\n    }\n  ]\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "const json = pm.response.json();",
+         "if (pm.response.code === 201 && json.data && json.data.id) { pm.environment.set('packing_id', json.data.id); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "GET Detail koli",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/packing/{{packing_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "packing",
+        "{{packing_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang, supervisor, staf_order, pimpinan."
+     }
+    },
+    {
+     "name": "POST Void koli (hanya yang masih tersedia)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/packing/{{packing_id}}/void",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "packing",
+        "{{packing_id}}",
+        "void"
+       ]
+      },
+      "description": "Hak akses: admin, supervisor finishing.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "GET Label koli (PDF A6)",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/packing/{{packing_id}}/label",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "packing",
+        "{{packing_id}}",
+        "label"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, gudang, supervisor, staf_order, pimpinan."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Pengiriman",
+   "description": "Surat jalan dan konfirmasi penerimaan (Batch 7).",
+   "item": [
+    {
+     "name": "GET Daftar surat jalan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengiriman",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengiriman"
+       ],
+       "query": [
+        {
+         "key": "status",
+         "value": "disiapkan",
+         "disabled": true
+        },
+        {
+         "key": "order_id",
+         "value": "",
+         "disabled": true
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-12",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-12",
+         "disabled": true
+        },
+        {
+         "key": "per_page",
+         "value": "25",
+         "disabled": true,
+         "description": "Jumlah data per halaman (default 25)."
+        }
+       ]
+      },
+      "description": "Hak akses: admin, manajer, staf_order, gudang, pimpinan."
+     }
+    },
+    {
+     "name": "POST Buat surat jalan dari koli tersedia",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengiriman",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengiriman"
+       ]
+      },
+      "description": "Koli otomatis menjadi `dalam_pengiriman`. Satu koli hanya boleh di satu pengiriman aktif.\n\nHak akses: admin, gudang.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"order_id\": 1,\n  \"koli_ids\": [\n    1\n  ],\n  \"tgl_kirim\": \"2026-11-12\",\n  \"ekspedisi\": \"JNE\",\n  \"no_resi\": \"JNE123\",\n  \"no_kendaraan\": \"B 1234 CD\",\n  \"nama_sopir\": \"Andi\",\n  \"nama_penerima\": \"Budi\",\n  \"alamat_tujuan\": \"Jl. Tujuan No. 1\",\n  \"catatan\": \"Catatan\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "const json = pm.response.json();",
+         "if (pm.response.code === 201 && json.data && json.data.id) { pm.environment.set('pengiriman_id', json.data.id); }"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "GET Detail surat jalan (termasuk `ringkasan_item` per produk, warna, ukuran)",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengiriman/{{pengiriman_id}}",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengiriman",
+        "{{pengiriman_id}}"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, staf_order, gudang, pimpinan."
+     }
+    },
+    {
+     "name": "POST Kirim: koli terkirim, qty_terkirim bertambah, status order dihitung ulang",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengiriman/{{pengiriman_id}}/kirim",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengiriman",
+        "{{pengiriman_id}}",
+        "kirim"
+       ]
+      },
+      "description": "Hak akses: admin, gudang.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"tgl_kirim\": \"2026-11-12\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "POST Konfirmasi diterima (bukti terima opsional)",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengiriman/{{pengiriman_id}}/diterima",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengiriman",
+        "{{pengiriman_id}}",
+        "diterima"
+       ]
+      },
+      "description": "Hak akses: admin, staf_order, gudang.",
+      "body": {
+       "mode": "formdata",
+       "formdata": [
+        {
+         "key": "tgl_diterima",
+         "type": "text",
+         "value": "2026-11-12"
+        },
+        {
+         "key": "catatan",
+         "type": "text",
+         "value": "Diterima baik"
+        },
+        {
+         "key": "bukti",
+         "type": "file",
+         "src": []
+        }
+       ]
+      }
+     }
+    },
+    {
+     "name": "POST Batalkan pengiriman",
+     "request": {
+      "method": "POST",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       },
+       {
+        "key": "Content-Type",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengiriman/{{pengiriman_id}}/batal",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengiriman",
+        "{{pengiriman_id}}",
+        "batal"
+       ]
+      },
+      "description": "Koli kembali `tersedia`; bila sudah dikirim, `qty_terkirim` dikurangi. SJ `diterima` tidak bisa dibatalkan.\n\nHak akses: sebelum dikirim: admin, gudang; setelah dikirim: admin, manajer.",
+      "body": {
+       "mode": "raw",
+       "raw": "{\n  \"alasan\": \"Alasan minimal lima karakter\"\n}",
+       "options": {
+        "raw": {
+         "language": "json"
+        }
+       }
+      }
+     }
+    },
+    {
+     "name": "GET Surat jalan (PDF, tanpa harga)",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengiriman/{{pengiriman_id}}/cetak",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengiriman",
+        "{{pengiriman_id}}",
+        "cetak"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, staf_order, gudang, pimpinan."
+     }
+    },
+    {
+     "name": "GET Unduh bukti terima",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/pengiriman/{{pengiriman_id}}/bukti",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "pengiriman",
+        "{{pengiriman_id}}",
+        "bukti"
+       ]
+      },
+      "description": "Hak akses: admin, manajer, staf_order, gudang, pimpinan."
+     }
+    }
+   ]
+  },
+  {
+   "name": "Dashboard dan Laporan",
+   "description": "Batch 8.",
+   "item": [
+    {
+     "name": "GET Dashboard",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/dashboard",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "dashboard"
+       ],
+       "query": []
+      },
+      "description": "Isi sesuai role (field tipe)."
+     }
+    },
+    {
+     "name": "GET Jenis laporan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan"
+       ],
+       "query": []
+      },
+      "description": ""
+     }
+    },
+    {
+     "name": "GET Laporan order",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/order",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "order"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    },
+    {
+     "name": "GET Laporan progres-wo",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/progres-wo",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "progres-wo"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    },
+    {
+     "name": "GET Laporan produksi-harian",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/produksi-harian",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "produksi-harian"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    },
+    {
+     "name": "GET Laporan wip",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/wip",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "wip"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    },
+    {
+     "name": "GET Laporan reject",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/reject",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "reject"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    },
+    {
+     "name": "GET Laporan repair",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/repair",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "repair"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    },
+    {
+     "name": "GET Laporan stok-bahan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/stok-bahan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "stok-bahan"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    },
+    {
+     "name": "GET Laporan kartu-stok",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/kartu-stok",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "kartu-stok"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        },
+        {
+         "key": "bahan_id",
+         "value": "1",
+         "disabled": false
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    },
+    {
+     "name": "GET Laporan kebutuhan-vs-stok",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/kebutuhan-vs-stok",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "kebutuhan-vs-stok"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    },
+    {
+     "name": "GET Laporan pemakaian-bahan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/pemakaian-bahan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "pemakaian-bahan"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    },
+    {
+     "name": "GET Laporan pembelian",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/pembelian",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "pembelian"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    },
+    {
+     "name": "GET Laporan penerimaan",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/penerimaan",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "penerimaan"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    },
+    {
+     "name": "GET Laporan pengiriman",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/pengiriman",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "pengiriman"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    },
+    {
+     "name": "GET Laporan on-time-delivery",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/on-time-delivery",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "on-time-delivery"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    },
+    {
+     "name": "GET Laporan opname",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/opname",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "opname"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    },
+    {
+     "name": "GET Laporan audit-log",
+     "request": {
+      "method": "GET",
+      "header": [
+       {
+        "key": "Accept",
+        "value": "application/json"
+       }
+      ],
+      "url": {
+       "raw": "{{base_url}}/laporan/audit-log",
+       "host": [
+        "{{base_url}}"
+       ],
+       "path": [
+        "laporan",
+        "audit-log"
+       ],
+       "query": [
+        {
+         "key": "format",
+         "value": "json",
+         "disabled": false
+        },
+        {
+         "key": "tgl_dari",
+         "value": "2026-11-01",
+         "disabled": true
+        },
+        {
+         "key": "tgl_sampai",
+         "value": "2026-11-30",
+         "disabled": true
+        }
+       ]
+      },
+      "description": "format=json|pdf|xlsx. PDF/XLSX: Send and Download."
+     }
+    }
+   ]
+  }
+ ]
 }

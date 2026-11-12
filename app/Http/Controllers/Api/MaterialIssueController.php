@@ -15,7 +15,7 @@ class MaterialIssueController extends Controller
      */
     public function index(Request $request)
     {
-        abort_unless($request->user()?->hasRole('admin', 'manajer', 'gudang', 'supervisor'), 403);
+        abort_unless($request->user()?->hasRole('admin', 'manajer', 'gudang', 'supervisor', 'pimpinan'), 403);
 
         $query = PengeluaranBahan::with(['wo.order', 'tahap', 'pengeluaranBahanItems.bahan'])
             ->latest('id');
@@ -42,7 +42,7 @@ class MaterialIssueController extends Controller
      */
     public function show(Request $request, int $id)
     {
-        abort_unless($request->user()?->hasRole('admin', 'manajer', 'gudang', 'supervisor'), 403);
+        abort_unless($request->user()?->hasRole('admin', 'manajer', 'gudang', 'supervisor', 'pimpinan'), 403);
         $query = PengeluaranBahan::with(['wo.order', 'tahap', 'pengeluaranBahanItems.bahan']);
         if ($request->user()->hasRole('supervisor')) {
             $query->where('tahap_id', $request->user()->tahap_id);

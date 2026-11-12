@@ -21,7 +21,7 @@ class StockController extends Controller
         }
 
         if ($request->boolean('di_bawah_minimum')) {
-            $query->whereRaw('stok <= stok_minimum');
+            $query->where('stok_minimum', '>', 0)->whereRaw('(stok - stok_dipesan) <= stok_minimum');
         }
 
         return response()->json($query->orderBy('nama')->paginate($request->integer('per_page', 25)));

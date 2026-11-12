@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BahanController;
 use App\Http\Controllers\Api\BomController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\LaporanController;
 use App\Http\Controllers\Api\MasterController;
 use App\Http\Controllers\Api\MaterialIssueController;
 use App\Http\Controllers\Api\NotificationController;
@@ -166,6 +168,11 @@ Route::prefix('v1')->group(function () {
         Route::post('pengiriman/{id}/batal', [PengirimanController::class, 'batal']);
         Route::get('pengiriman/{id}/cetak', [PengirimanController::class, 'cetak']);
         Route::get('pengiriman/{id}/bukti', [PengirimanController::class, 'bukti']);
+
+        // Batch 8 - dashboard dan laporan
+        Route::get('dashboard', [DashboardController::class, 'index']);
+        Route::get('laporan', [LaporanController::class, 'index']);
+        Route::get('laporan/{jenis}', [LaporanController::class, 'show'])->middleware('throttle:30,1');
 
         $masterUmum = ['pelanggan', 'supplier', 'ukuran', 'warna', 'satuan', 'jenis-cacat', 'line-produksi', 'tahap'];
         Route::prefix('{tipe_master}')->whereIn('tipe_master', $masterUmum)->group(function () {

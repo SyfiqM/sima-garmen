@@ -19,7 +19,7 @@ class PenerimaanController extends Controller
 
     public function index(Request $request)
     {
-        abort_unless($request->user()?->hasRole('admin', 'gudang'), 403);
+        abort_unless($request->user()?->hasRole('admin', 'manajer', 'gudang', 'pimpinan'), 403);
         $query = PenerimaanBahan::with('supplier');
         $query->orderBy('created_at', 'desc');
 
@@ -35,7 +35,7 @@ class PenerimaanController extends Controller
 
     public function show(Request $request, $id)
     {
-        abort_unless($request->user()?->hasRole('admin', 'gudang'), 403);
+        abort_unless($request->user()?->hasRole('admin', 'manajer', 'gudang', 'pimpinan'), 403);
 
         return response()->json(['data' => PenerimaanBahan::with(['supplier', 'items.bahan', 'po'])->findOrFail($id)]);
     }
