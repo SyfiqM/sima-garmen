@@ -37,6 +37,13 @@ class OpnameController extends Controller
         return response()->json(['data' => $opname], 201);
     }
 
+    public function update(StokOpnameRequest $request, int $id)
+    {
+        $opname = $this->service->update($id, $request->validated(), $request->user()->id);
+
+        return response()->json(['data' => $opname, 'message' => 'Draft stok opname berhasil diperbarui.']);
+    }
+
     public function show(Request $request, $id)
     {
         abort_unless($request->user()?->hasRole('admin', 'manajer', 'gudang'), 403);

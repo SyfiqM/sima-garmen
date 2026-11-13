@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\PenerimaanBahanRequest;
 use App\Models\PenerimaanBahan;
 use App\Services\PurchaseService;
+use App\Support\Setting;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class PenerimaanController extends Controller
@@ -38,6 +40,24 @@ class PenerimaanController extends Controller
         abort_unless($request->user()?->hasRole('admin', 'manajer', 'gudang', 'pimpinan'), 403);
 
         return response()->json(['data' => PenerimaanBahan::with(['supplier', 'items.bahan', 'po'])->findOrFail($id)]);
+    }
+
+    public function cetak(Request $request, int $id)
+    {
+        abort_unless($request->user()?->hasRole('admin', 'manajer', 'gudang', 'pimpinan'), 403);
+
+        $penerimaan = PenerimaanBahan::with([
+            'supplier', 'po', 'items.bahan.satuan', 'items.poItem', 'diterimaOleh',
+        ])->findOrFail($id);
+        $perusahaan = [
+            'nama_perusahaan' => Setting::get('nama_perusahaan', 'SIMA Garmen'),
+            'alamat_perusahaan' => Setting::get('alamat_perusahaan', ''),
+            'telepon_perusahaan' => Setting::get('telepon_perusahaan', ''),
+        ];
+
+        return Pdf::loadView('pdf.penerimaan-bahan', compact('penerimaan', 'perusahaan'))
+            ->setPaper('a4')
+            ->download("penerimaan-{$penerimaan->no_bm}.pdf");
     }
 
     public function void(Request $request, int $id)

@@ -28,12 +28,12 @@ class StokOpname extends Model
         'disetujui_at' => 'datetime',
     ];
 
-    public function dibuatOleh(): BelongsTo
+    public function pembuat(): BelongsTo
     {
         return $this->belongsTo(User::class, 'dibuat_oleh');
     }
 
-    public function disetujuiOleh(): BelongsTo
+    public function penyetuju(): BelongsTo
     {
         return $this->belongsTo(User::class, 'disetujui_oleh');
     }

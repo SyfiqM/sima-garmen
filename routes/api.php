@@ -112,6 +112,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('pengeluaran-bahan/bahan-wo', [MaterialIssueController::class, 'bahanWo']);
         Route::apiResource('pengeluaran-bahan', MaterialIssueController::class)->only(['index', 'store', 'show']);
+        Route::get('pengeluaran-bahan/{id}/cetak', [MaterialIssueController::class, 'cetak']);
         Route::post('pengeluaran-bahan/{id}/setujui', [MaterialIssueController::class, 'setujui']);
         Route::post('pengeluaran-bahan/{id}/void', [MaterialIssueController::class, 'void']);
 
@@ -125,15 +126,17 @@ Route::prefix('v1')->group(function () {
 
         // Pembelian & Penerimaan (Tahap 4B)
         Route::apiResource('po', PoController::class);
+        Route::get('po/{id}/cetak', [PoController::class, 'cetak']);
         Route::post('po/dari-kekurangan', [PoController::class, 'dariKekurangan']);
         Route::post('po/{id}/pesan', [PoController::class, 'pesan']);
         Route::post('po/{id}/batalkan', [PoController::class, 'batalkan']);
 
         Route::apiResource('penerimaan', PenerimaanController::class)->only(['index', 'store', 'show']);
+        Route::get('penerimaan/{id}/cetak', [PenerimaanController::class, 'cetak']);
         Route::post('penerimaan/{id}/void', [PenerimaanController::class, 'void']);
 
         // Stok Opname (Tahap 4C)
-        Route::apiResource('opname', OpnameController::class)->only(['index', 'store', 'show']);
+        Route::apiResource('opname', OpnameController::class)->only(['index', 'store', 'show', 'update']);
         Route::post('opname/{id}/ajukan', [OpnameController::class, 'aksiBisnis'])->defaults('aksi', 'ajukan');
         Route::post('opname/{id}/tolak', [OpnameController::class, 'aksiBisnis'])->defaults('aksi', 'tolak');
         Route::post('opname/{id}/setujui', [OpnameController::class, 'aksiBisnis'])->defaults('aksi', 'setujui');
@@ -155,6 +158,7 @@ Route::prefix('v1')->group(function () {
 
         Route::get('work-order', [WorkOrderController::class, 'index']);
         Route::get('work-order/{id}', [WorkOrderController::class, 'show'])->whereNumber('id');
+        Route::get('work-order/{id}/cetak', [WorkOrderController::class, 'cetak'])->whereNumber('id');
         Route::post('work-order/{id}/tutup-kurang', [WorkOrderController::class, 'tutupKurang']);
 
 

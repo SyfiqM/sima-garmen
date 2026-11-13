@@ -40,6 +40,14 @@ class ProfileController extends Controller
             'password' => Hash::make($request->password_baru)
         ]);
 
+        // Sesi/perangkat lain harus login ulang; token yang sedang dipakai tetap berlaku.
+        $tokens = $request->user()->tokens();
+        $saatIni = $request->user()->currentAccessToken();
+        if ($saatIni instanceof \Laravel\Sanctum\PersonalAccessToken) {
+            $tokens->where('id', '!=', $saatIni->id);
+        }
+        $tokens->delete();
+
         return response()->json(['message' => 'Password berhasil diubah.']);
     }
 }

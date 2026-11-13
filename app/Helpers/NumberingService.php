@@ -15,31 +15,30 @@ class NumberingService
     public static function next(string $kode): string
     {
         // Periode format YYMM (contoh 2611 untuk November 2026)
-        $periode = date('ym');
+        $periode = now()->format('ym');
 
         return DB::transaction(function () use ($kode, $periode) {
-            // Cek data penomoran saat ini dengan lockForUpdate untuk mencegah duplikasi
+            // Baris dijamin ada lebih dulu (insertOrIgnore aman dari balapan karena unique kode+periode),
+            // sehingga lockForUpdate benar-benar mengunci baris yang sama untuk semua transaksi.
+            DB::table('penomoran')->insertOrIgnore([
+                'kode' => $kode,
+                'periode' => $periode,
+                'nomor_terakhir' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
             $penomoran = DB::table('penomoran')
                 ->where('kode', $kode)
                 ->where('periode', $periode)
                 ->lockForUpdate()
                 ->first();
 
-            if ($penomoran) {
-                $nextNumber = $penomoran->nomor_terakhir + 1;
-                DB::table('penomoran')
-                    ->where('kode', $kode)
-                    ->where('periode', $periode)
-                    ->update(['nomor_terakhir' => $nextNumber]);
-            } else {
-                // Jika belum ada di bulan ini, mulai dari 1
-                $nextNumber = 1;
-                DB::table('penomoran')->insert([
-                    'kode' => $kode,
-                    'periode' => $periode,
-                    'nomor_terakhir' => $nextNumber
-                ]);
-            }
+            $nextNumber = $penomoran->nomor_terakhir + 1;
+            DB::table('penomoran')
+                ->where('kode', $kode)
+                ->where('periode', $periode)
+                ->update(['nomor_terakhir' => $nextNumber, 'updated_at' => now()]);
 
             // Format: KODE-YYMM-000X
             return sprintf("%s-%s-%04d", $kode, $periode, $nextNumber);

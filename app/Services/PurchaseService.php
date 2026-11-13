@@ -240,6 +240,15 @@ class PurchaseService
                 }
                 $po->status = $semuaTerpenuhi ? 'diterima' : 'diterima_sebagian';
                 $po->save();
+
+                NotificationService::toRoles(
+                    ['gudang', 'manajer'],
+                    $semuaTerpenuhi ? 'PO diterima penuh' : 'PO diterima sebagian',
+                    "PO {$po->no_po} ".($semuaTerpenuhi ? 'sudah diterima seluruhnya.' : 'diterima sebagian.'),
+                    null,
+                    'info',
+                    $userId,
+                );
             }
 
             // 6. Alokasi Ulang Reservasi karena ada stok baru yang masuk

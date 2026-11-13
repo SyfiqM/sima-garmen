@@ -18,7 +18,7 @@ class OrderRequest extends FormRequest
             'no_po_pelanggan' => 'nullable|string|max:50',
             'tgl_order' => 'required|date',
             'deadline' => 'required|date|after_or_equal:tgl_order',
-            'prioritas' => 'required|in:normal,tinggi,urgent',
+            'prioritas' => 'nullable|in:normal,tinggi,urgent',
             'alamat_kirim' => 'nullable|string',
             'catatan' => 'nullable|string',
             

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\PurchaseOrderRequest;
 use App\Models\PurchaseOrder;
 use App\Services\PurchaseService;
+use App\Support\Setting;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class PoController extends Controller
@@ -67,6 +69,23 @@ class PoController extends Controller
         abort_unless($request->user()?->hasRole('admin', 'manajer', 'gudang', 'pimpinan'), 403);
 
         return response()->json(['data' => PurchaseOrder::with(['supplier', 'items.bahan'])->findOrFail($id)]);
+    }
+
+    public function cetak(Request $request, int $id)
+    {
+        abort_unless($request->user()?->hasRole('admin', 'manajer', 'gudang', 'pimpinan'), 403);
+
+        $po = PurchaseOrder::with(['supplier', 'items.bahan.satuan', 'dibuatOleh'])
+            ->findOrFail($id);
+        $perusahaan = [
+            'nama_perusahaan' => Setting::get('nama_perusahaan', 'SIMA Garmen'),
+            'alamat_perusahaan' => Setting::get('alamat_perusahaan', ''),
+            'telepon_perusahaan' => Setting::get('telepon_perusahaan', ''),
+        ];
+
+        return Pdf::loadView('pdf.purchase-order', compact('po', 'perusahaan'))
+            ->setPaper('a4')
+            ->download("purchase-order-{$po->no_po}.pdf");
     }
 
     public function pesan(Request $request, $id)

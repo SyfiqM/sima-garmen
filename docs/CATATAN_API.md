@@ -1,11 +1,12 @@
 # Catatan API SIMA Garmen
 
-Panduan ringkas untuk frontend. Rincian lengkap setiap endpoint ada di `openapi.yaml` (130 operasi) dan koleksi Postman.
+Panduan ringkas untuk frontend. Rincian endpoint ada di `openapi.yaml` (144 operasi). Koleksi Postman memuat 159 request, termasuk 16 jenis laporan dengan URL konkret.
 
 - Base URL lokal: `http://127.0.0.1:8000/api/v1`
 - Autentikasi: `Authorization: Bearer <token>` (Sanctum). Endpoint publik: `POST /auth/login`, `GET /enum`, `GET /pengaturan-umum`.
 - Kirim `Accept: application/json`. Tanggal memakai format `YYYY-MM-DD`; zona waktu bisnis Asia/Jakarta.
 - Akun awal: `admin` / `admin12345` (ganti segera). Akun demo semua role memakai password `password123`.
+- Environment Postman menyediakan `base_url`, `login`, `password`, dan `token`. Request Login menyimpan token otomatis; ganti `login` dan `password` untuk menguji role lain.
 
 ## 1. Format respons
 
@@ -35,7 +36,7 @@ Panduan ringkas untuk frontend. Rincian lengkap setiap endpoint ada di `openapi.
 }
 ```
 
-Gunakan `?page=` dan `?per_page=` (maks 100). Beberapa daftar tidak terpaginasi dan hanya mengembalikan `{ "data": [ ... ] }`: `GET /qc/antrean`, `GET /order/{id}/koli-tersedia`, `GET /produksi/antrean`.
+Gunakan `?page=` dan `?per_page=` (maks 100). Daftar order juga menerima `tgl_dari`, `tgl_sampai`, `terlambat=1|0`, dan `sort` (`created_at`, `-created_at`, `deadline`, `-deadline`, `tgl_order`, `-tgl_order`, `no_order`, `-no_order`; default `-created_at`). Beberapa daftar tidak terpaginasi dan hanya mengembalikan `{ "data": [ ... ] }`: `GET /qc/antrean`, `GET /order/{id}/koli-tersedia`, `GET /produksi/antrean`.
 
 **Status dan label.** Semua status (order, WO, koli, pengiriman, dan seterusnya) dikirim sebagai **string nilai**, misalnya `"dikirim_sebagian"`. Label tampilan diambil dari `GET /enum`, yang berisi `[{ "value": "...", "label": "..." }]` per jenis enum. Warna badge ditentukan frontend.
 
@@ -51,24 +52,29 @@ Tampilkan `message` kepada pengguna dan gunakan `code` untuk logika tampilan.
 
 ## 2. Kode error bisnis
 
-| Kode                         | HTTP                                | Arti                                                                             |
-| ---------------------------- | ----------------------------------- | -------------------------------------------------------------------------------- |
-| `STATUS_TIDAK_VALID`         | 422 (modul order), 409 (modul lain) | Status dokumen tidak memungkinkan aksi                                           |
-| `TIDAK_ADA_HAK`              | 403                                 | Role atau kepemilikan tidak cukup                                                |
-| `VALIDASI_GAGAL`             | 422                                 | Aturan bisnis pada data dilanggar (rumus QC, item bukan milik WO, dan lain-lain) |
-| `ALASAN_WAJIB`               | 422                                 | Aksi butuh alasan minimal 5 karakter                                             |
-| `QTY_MELEBIHI_BATAS`         | 422                                 | Qty melebihi yang tersedia pada tahap itu                                        |
-| `STOK_TIDAK_CUKUP`           | 422                                 | Stok fisik kurang                                                                |
-| `STOK_DI_BAWAH_RESERVASI`    | 422                                 | Stok akan lebih kecil dari reservasi berjalan                                    |
-| `BAHAN_TAHAP_BELUM_LENGKAP`  | 422                                 | Bahan tahap belum dikeluarkan                                                    |
-| `TAHAP_SUDAH_DITUTUP`        | 422                                 | Tahap sudah ditutup                                                              |
-| `VOID_DITOLAK_HILIR_NEGATIF` | 422                                 | Void membuat ketersediaan hilir negatif                                          |
-| `BOM_BELUM_LENGKAP`          | 422                                 | BOM cutting produk belum lengkap saat persetujuan                                |
-| `MELEBIHI_TOLERANSI`         | 422                                 | Melebihi toleransi, butuh alasan atau persetujuan                                |
-| `DATA_SUDAH_DIPAKAI`         | 422                                 | Master sudah dipakai dokumen lain                                                |
-| `KOLI_TIDAK_TERSEDIA`        | 422                                 | Koli tidak berstatus tersedia                                                    |
-| `AKSI_TIDAK_VALID`           | 400                                 | Aksi tidak dikenal                                                               |
-| `TIDAK_DITEMUKAN`            | 404                                 | Berkas atau data turunan tidak ada                                               |
+| Kode                         | HTTP      | Arti                                                                             |
+| ---------------------------- | --------- | -------------------------------------------------------------------------------- |
+| `STATUS_TIDAK_VALID`         | 422 / 409 | Status dokumen tidak memungkinkan aksi; 409 dipakai pada konflik status tertentu |
+| `TIDAK_ADA_HAK`              | 403       | Role atau kepemilikan tidak cukup                                                |
+| `VALIDASI_GAGAL`             | 422       | Aturan bisnis pada data dilanggar (rumus QC, item bukan milik WO, dan lain-lain) |
+| `ALASAN_WAJIB`               | 422       | Aksi butuh alasan minimal 5 karakter                                             |
+| `QTY_MELEBIHI_BATAS`         | 422       | Qty melebihi yang tersedia pada tahap itu                                        |
+| `STOK_TIDAK_CUKUP`           | 422       | Stok fisik tersedia tidak cukup                                                  |
+| `STOK_DI_BAWAH_RESERVASI`    | 422 / 409 | Perubahan akan membuat stok lebih kecil dari reservasi berjalan                  |
+| `BAHAN_TAHAP_BELUM_LENGKAP`  | 422       | Reservasi bahan untuk tahap tersebut belum terpenuhi                             |
+| `TAHAP_SUDAH_DITUTUP`        | 422       | Tahap sudah ditutup                                                              |
+| `VOID_DITOLAK_HILIR_NEGATIF` | 422       | Void membuat ketersediaan atau counter proses hilir menjadi negatif              |
+| `BOM_BELUM_LENGKAP`          | 422       | BOM cutting produk belum lengkap saat persetujuan                                |
+| `MELEBIHI_TOLERANSI`         | 422       | Pengeluaran bahan melampaui toleransi yang diizinkan                             |
+| `DATA_SUDAH_DIPAKAI`         | 409       | Master atau kombinasi BOM sudah dipakai / sudah terdaftar                        |
+| `KOLI_TIDAK_TERSEDIA`        | 422       | Koli tidak berstatus tersedia                                                    |
+| `SUDAH_ADA_PENGELUARAN`      | 422 / 409 | Aksi tidak dapat dilakukan karena penerimaan/pengeluaran terkait sudah ada       |
+| `DATA_KOSONG`                | 422       | Data sumber yang diperlukan tidak tersedia                                       |
+| `AKSI_TIDAK_VALID`           | 400       | Aksi tidak dikenal                                                               |
+| `TIDAK_DITEMUKAN`            | 404       | Berkas atau data turunan tidak ada                                               |
+| `TERLALU_BANYAK_PERCOBAAN`   | 429       | Batas percobaan login tercapai; perhatikan header `Retry-After`                  |
+
+Kode `BELUM_ADA_PENGELUARAN` tercantum di kontrak awal, tetapi belum ditemukan sebagai kode yang dikeluarkan oleh implementasi saat ini. Jangan jadikan kode tersebut sebagai dependensi frontend sebelum benar-benar ditambahkan ke backend.
 
 ## 3. Hak akses ringkas
 
@@ -128,7 +134,7 @@ Pembatalan pengiriman setelah dikirim dapat menurunkan status (misalnya `terkiri
 
 ## 6. Counter item WO
 
-`GET /work-order/{id}` mengembalikan tiap `wo_items[]` dengan counter dan nilai turunan:
+`GET /work-order/{id}` mengembalikan counter dan nilai turunan sesuai cakupan role. Supervisor hanya menerima data tahap miliknya; Supervisor Finishing juga menerima data packing:
 
 | Field                                                                                                         | Arti                                             |
 | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
@@ -139,14 +145,14 @@ Pembatalan pengiriman setelah dikirim dapat menurunkan status (misalnya `terkiri
 | `qty_packing`, `qty_terkirim`                                                                                 | Dikemas dan terkirim                             |
 | `cutting_boleh`, `sewing_tersedia`, `finishing_tersedia`, `qc_tersedia`, `packing_tersedia`, `kirim_tersedia` | Batas yang boleh diinput pada langkah berikutnya |
 
-Frontend sebaiknya membatasi input qty sesuai nilai turunan ini. Backend tetap menolak dengan `QTY_MELEBIHI_BATAS`.
+`kirim_tersedia` dihitung sebagai `qty_packing - qty_terkirim - qty dalam koli pada pengiriman berstatus disiapkan`; jadi koli yang sudah terikat pada surat jalan draft tidak dapat dipilih lagi. Frontend sebaiknya membatasi input qty sesuai nilai turunan ini. Backend tetap menolak dengan `QTY_MELEBIHI_BATAS`.
 
 ## 7. Berkas dan PDF
 
 - Lampiran order: `POST /order/{id}/lampiran` (`multipart/form-data`, field `file`): jpg, jpeg, png, pdf, xlsx.
 - Bukti terima: `POST /pengiriman/{id}/diterima` (`multipart/form-data`, field `bukti`): jpg, jpeg, png, pdf.
 - Batas ukuran memakai pengaturan `maks_lampiran_mb` (default 5 MB). Berkas disimpan di disk privat.
-- Unduhan (lampiran, bukti terima, PDF) membutuhkan header `Authorization`, jadi unduh sebagai **blob** lalu buat tautan sementara. PDF yang tersedia: `GET /order/{id}/cetak`, `GET /packing/{id}/label`, `GET /pengiriman/{id}/cetak`.
+- Unduhan (lampiran, bukti terima, PDF) membutuhkan header `Authorization`, jadi unduh sebagai **blob** lalu buat tautan sementara. PDF yang tersedia: `GET /order/{id}/cetak`, `GET /work-order/{id}/cetak`, `GET /po/{id}/cetak`, `GET /penerimaan/{id}/cetak`, `GET /pengeluaran-bahan/{id}/cetak`, `GET /packing/{id}/label`, `GET /pengiriman/{id}/cetak`, dan `GET /laporan/{jenis}?format=pdf`.
 
 ## 8. Perbedaan dari kontrak awal
 
@@ -154,7 +160,9 @@ Hal-hal berikut berbeda dari rencana di dokumen langkah dan perlu diperhatikan f
 
 1. Status dikirim sebagai string, bukan objek `{value, label, color}`. Label dari `GET /enum`.
 2. Paginasi berbentuk datar (lihat bagian 1).
-3. Kode `STATUS_TIDAK_VALID` memakai HTTP 422 pada modul order tetapi 409 pada modul lain. Gunakan `code`, bukan status HTTP, untuk membedakan.
+3. Kode `STATUS_TIDAK_VALID` memakai HTTP 422 atau 409 sesuai konteks konflik. Gunakan `code`, bukan status HTTP saja, untuk membedakan aturan bisnis.
+4. `PUT` dan `PATCH` sama-sama tersedia untuk update resource `bahan`, `produk`, `pengguna`, `order`, `po`, dan `opname` karena memakai `Route::apiResource`. Payload dan aturan validasinya sama.
+5. `PUT` dan `PATCH /opname/{id}` hanya dapat mengubah draft milik pembuat atau Admin. Snapshot stok sistem dan selisih dihitung ulang saat draft disimpan. Perubahan BOM, termasuk salin BOM, dicatat pada audit log.
 
 ## 9. Perubahan sejak versi sebelumnya (Batch 5 ke Batch 7)
 
@@ -170,6 +178,7 @@ Hal-hal berikut berbeda dari rencana di dokumen langkah dan perlu diperhatikan f
 **Dashboard** `GET /dashboard`: isi mengikuti role pemanggil. Baca field `data.tipe`: `eksekutif` (admin, manajer, pimpinan), `staf_order`, `gudang`, `supervisor`, `qc`. Daftar di dashboard dibatasi 10-15 baris. Reject rate dashboard dihitung untuk bulan berjalan (`periode_bulan`).
 
 **Laporan**
+
 - `GET /laporan` : jenis laporan yang boleh dibuka user (`jenis`, `label`).
 - `GET /laporan/{jenis}?format=json|pdf|xlsx&tgl_dari=&tgl_sampai=` : default `json`, periode default bulan berjalan. Dibatasi 30 permintaan per menit per user (429).
 - Jenis: `order`, `progres-wo`, `produksi-harian`, `wip`, `reject`, `repair`, `stok-bahan`, `kartu-stok`, `kebutuhan-vs-stok`, `pemakaian-bahan`, `pembelian`, `penerimaan`, `pengiriman`, `on-time-delivery`, `opname`, `audit-log`.
@@ -181,3 +190,44 @@ Hal-hal berikut berbeda dari rencana di dokumen langkah dan perlu diperhatikan f
 Hak akses: admin, manajer, pimpinan semua (audit-log hanya admin dan manajer); staf_order: order, pengiriman; gudang: stok-bahan, kartu-stok, kebutuhan-vs-stok, pemakaian-bahan, pembelian, penerimaan, pengiriman, opname; supervisor: progres-wo, produksi-harian, wip, reject, repair (hanya tahapnya, kolom tahap lain dan hilir tidak dikirim); qc: reject, repair.
 
 Definisi angka: kekurangan (progres-wo) = max(0, qty_order - lolos QC); kelebihan = max(0, lolos QC - qty_order); reject rate QC memakai hasil = qty lolos; on-time delivery memakai tanggal kirim terakhir (SJ dikirim/diterima) <= deadline; laporan progres-wo dan pemakaian-bahan difilter menurut `tgl_order`.
+
+## 11. Akun demo, seeder, dan persiapan lokal
+
+### Akun
+
+| Username        | Role / cakupan                          | Password      |
+| --------------- | --------------------------------------- | ------------- |
+| `admin`         | Admin awal (`AdminSeeder`)              | `admin12345`  |
+| `manajer`       | Manajer Produksi                        | `password123` |
+| `order`         | Staf Order                              | `password123` |
+| `gudang`        | Staf Gudang                             | `password123` |
+| `spv_cutting`   | Supervisor Cutting                      | `password123` |
+| `spv_sewing`    | Supervisor Sewing                       | `password123` |
+| `spv_finishing` | Supervisor Finishing (termasuk packing) | `password123` |
+| `qc`            | Quality Control                         | `password123` |
+| `pimpinan`      | Pimpinan (read-only)                    | `password123` |
+
+`DatabaseSeeder` membuat akun Admin awal. `DemoUserSeeder` membuat delapan akun demo selain Admin. `DemoDataSeeder` juga memanggil `DemoUserSeeder` secara otomatis.
+
+### Menyiapkan data demo
+
+Jalankan pada database pengembangan/demo yang boleh dikosongkan:
+
+```bash
+php artisan migrate:fresh --seed
+php artisan db:seed --class=DemoDataSeeder
+```
+
+Perintah pertama **menghapus seluruh tabel dan data** sebelum menjalankan seeder dasar. Jangan jalankan pada database produksi. `DemoDataSeeder` bersifat khusus pengembangan/demo, berhenti bila data demo sudah ada, dan membentuk data melalui service aplikasi. Isinya mencakup 5 pelanggan, 5 supplier, 8 warna, 20 bahan, 8 produk dengan BOM (termasuk variasi ukuran/warna), 3 PO, dan 6 order berstatus berbeda. Enam order mencakup `draft`, `diajukan`, `menunggu_bahan`, `produksi` (dengan reject dan repair), `siap_kirim`, serta `terkirim` dengan pengiriman parsial.
+
+### Environment dan Postman
+
+1. Salin `.env.example` menjadi `.env`, sesuaikan koneksi MySQL lokal, lalu jalankan `php artisan key:generate`.
+2. Project saat ini mensyaratkan **PHP 8.3 atau lebih baru** (`composer.json`) dan rancangan database menargetkan **MySQL 8**.
+3. `FILESYSTEM_DISK=local` mengarah ke `storage/app/private`; jangan ubah ke disk `public` untuk lampiran order atau bukti terima.
+4. Sesuaikan `allowed_origins` di `config/cors.php` dengan alamat frontend. Untuk produksi, gunakan hanya origin HTTPS frontend yang benar; jangan gunakan wildcard.
+5. Import `SIMA.postman_collection.json` dan `SIMA.postman_environment.json`. Default `login/password` adalah akun Admin awal. Jalankan request Login untuk mengisi `token` otomatis. Ganti kedua variabel itu untuk menguji role lain.
+6. ID resource di environment Postman (misalnya `order_id`, `wo_id`, `bahan_id`) merupakan nilai awal/contoh. Sesuaikan dengan ID yang benar di database aktif atau jalankan request pembuatan yang menyimpan ID otomatis.
+7. Untuk pengujian beban pada database lokal khusus, jalankan `php artisan db:seed --class=PerformanceSeeder`. Seeder ini membuat 500 order/WO dan 50.000 log produksi; data tidak dihapus otomatis. Jangan jalankan pada database produksi atau database kerja yang datanya harus dipertahankan.
+
+Token Sanctum berlaku **720 menit** sesuai `config/sanctum.php`. Untuk produksi, set `APP_ENV=production`, `APP_DEBUG=false`, kredensial database yang benar, HTTPS, origin CORS frontend produksi, serta siapkan scheduler dan queue worker sesuai dokumen langkah backend. Jangan jalankan `DemoUserSeeder` atau `DemoDataSeeder` di produksi.

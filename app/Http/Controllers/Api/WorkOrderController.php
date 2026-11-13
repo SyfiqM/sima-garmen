@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\WorkOrder;
 use App\Services\WorkOrderService;
+use App\Support\Setting;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -29,6 +31,23 @@ class WorkOrderController extends Controller
     public function show(Request $request, int $id, WorkOrderService $service): JsonResponse
     {
         return response()->json(['data' => $service->detail($request->user(), $id)]);
+    }
+
+    public function cetak(Request $request, int $id, WorkOrderService $service)
+    {
+        // Detail memakai scope yang sama dengan endpoint show, termasuk supervisor per tahap.
+        $wo = $service->detail($request->user(), $id);
+        $wo->loadMissing(['woBahan.bahan.satuan', 'woBahan.tahap', 'dibuatOleh']);
+
+        $perusahaan = [
+            'nama_perusahaan' => Setting::get('nama_perusahaan', 'SIMA Garmen'),
+            'alamat_perusahaan' => Setting::get('alamat_perusahaan', ''),
+            'telepon_perusahaan' => Setting::get('telepon_perusahaan', ''),
+        ];
+
+        return Pdf::loadView('pdf.work-order', compact('wo', 'perusahaan'))
+            ->setPaper('a4', 'landscape')
+            ->download("work-order-{$wo->no_wo}.pdf");
     }
 
     public function tutupKurang(Request $request, int $id, WorkOrderService $service): JsonResponse

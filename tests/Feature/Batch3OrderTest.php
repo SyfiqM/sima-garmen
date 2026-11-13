@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Bahan;
-use App\Models\BOM;
+use App\Models\Bom;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Pelanggan;
@@ -70,7 +70,7 @@ class Batch3OrderTest extends TestCase
         // 4. Setup Produk & BOM
         $this->produk = Produk::create(['kode' => 'P01', 'nama' => 'Kaos Polos']);
 
-        BOM::create([
+        Bom::create([
             'produk_id' => $this->produk->id,
             'bahan_id' => $this->bahan->id,
             'tahap_id' => 1, // tahap cutting

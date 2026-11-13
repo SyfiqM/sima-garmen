@@ -5,11 +5,15 @@ namespace App\Services;
 use App\Enums\Role;
 use App\Models\User;
 use App\Notifications\SimaNotification;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 
 /**
  * Pengirim notifikasi in-app (lonceng di header).
  * $tipe: info | sukses | peringatan | bahaya
+ *
+ * $kunci (opsional) adalah penanda peristiwa unik untuk alert terjadwal,
+ * dipakai bersama sudahTerkirimHariIni() agar tidak terkirim ganda dalam sehari.
  */
 class NotificationService
 {
@@ -26,6 +30,7 @@ class NotificationService
         string $tipe = 'info',
         ?int $kecualiUserId = null,
         ?int $tahapId = null,
+        ?string $kunci = null,
     ): int {
         $nilai = array_map(fn ($r) => $r instanceof Role ? $r->value : $r, $roles);
 
@@ -37,7 +42,7 @@ class NotificationService
             ->get();
 
         if ($users->isNotEmpty()) {
-            Notification::send($users, new SimaNotification($judul, $pesan, $url, $tipe));
+            Notification::send($users, new SimaNotification($judul, $pesan, $url, $tipe, $kunci));
         }
 
         return $users->count();
@@ -50,13 +55,23 @@ class NotificationService
         string $pesan,
         ?string $url = null,
         string $tipe = 'info',
+        ?string $kunci = null,
     ): int {
         $users = User::query()->where('is_active', true)->whereIn('id', (array) $userIds)->get();
 
         if ($users->isNotEmpty()) {
-            Notification::send($users, new SimaNotification($judul, $pesan, $url, $tipe));
+            Notification::send($users, new SimaNotification($judul, $pesan, $url, $tipe, $kunci));
         }
 
         return $users->count();
+    }
+
+    /** Apakah notifikasi dengan kunci ini sudah dikirim hari ini. */
+    public static function sudahTerkirimHariIni(string $kunci): bool
+    {
+        return DB::table('notifications')
+            ->whereDate('created_at', today())
+            ->where('data', 'like', '%"kunci":"'.$kunci.'"%')
+            ->exists();
     }
 }

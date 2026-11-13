@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BomRequest;
-use App\Models\BOM;
+use App\Models\Bom;
 use App\Models\Produk;
 use App\Services\BomService;
 use Illuminate\Http\Request;
@@ -21,7 +21,7 @@ class BomController extends Controller
     public function index($produkId)
     {
         abort_unless(request()->user()?->hasRole('admin', 'manajer', 'pimpinan'), 403);
-        $boms = BOM::with(['bahan', 'tahap', 'ukuran', 'warna'])
+        $boms = Bom::with(['bahan', 'tahap', 'ukuran', 'warna'])
             ->where('produk_id', $produkId)
             ->get();
 
@@ -31,14 +31,14 @@ class BomController extends Controller
     public function store(BomRequest $request, $produkId)
     {
         Produk::findOrFail($produkId);
-        $bom = $this->service->store($produkId, $request->validated());
+        $bom = $this->service->store($produkId, $request->validated(), $request->user()->id);
 
         return response()->json(['data' => $bom], 201);
     }
 
     public function update(BomRequest $request, $bomId)
     {
-        $bom = $this->service->update($bomId, $request->validated());
+        $bom = $this->service->update($bomId, $request->validated(), $request->user()->id);
 
         return response()->json(['data' => $bom]);
     }
@@ -46,7 +46,7 @@ class BomController extends Controller
     public function destroy($bomId)
     {
         abort_unless(request()->user()?->hasRole('admin', 'manajer'), 403);
-        BOM::findOrFail($bomId)->delete();
+        $this->service->destroy((int) $bomId, request()->user()->id);
 
         return response()->json(null, 204);
     }
@@ -55,7 +55,7 @@ class BomController extends Controller
     {
         abort_unless($request->user()?->hasRole('admin', 'manajer'), 403);
         Produk::findOrFail($produkId);
-        $this->service->copyFrom($produkId, $produkAsalId);
+        $this->service->copyFrom($produkId, $produkAsalId, $request->user()->id);
 
         return response()->json(['message' => 'BOM berhasil disalin.']);
     }
