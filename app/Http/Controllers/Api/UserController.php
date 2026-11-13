@@ -17,7 +17,12 @@ class UserController extends Controller
         if (!$request->user()->hasRole('admin')) abort(403);
 
         $query = User::with('tahap'); // Jika ada relasi tahap
-        if ($request->search) $query->where('name', 'like', '%' . $request->search . '%')->orWhere('username', 'like', '%' . $request->search . '%');
+        if ($request->search) {
+            $search = '%' . $request->search . '%';
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery->where('name', 'like', $search)->orWhere('username', 'like', $search);
+            });
+        }
         if ($request->has('role')) $query->where('role', $request->role);
         
         return response()->json($query->paginate($request->per_page ?? 25));
@@ -89,6 +94,32 @@ class UserController extends Controller
         
         if (class_exists(Audit::class)) Audit::log($request->user()->id, 'user.reset_password', 'User', $user->id, null, null, 'Reset password oleh Admin');
         return response()->json(['message' => 'Password berhasil di-reset.']);
+    }
+
+    public function aktifkan(Request $request, int $id)
+    {
+        abort_unless($request->user()?->hasRole('admin'), 403);
+        $user = User::findOrFail($id);
+        $sebelum = $user->only(['role', 'is_active']);
+        $user->update(['is_active' => true]);
+        Audit::log($request->user()->id, 'user.aktifkan', 'User', $user->id, $sebelum, $user->only(['role', 'is_active']));
+        return response()->json(['data' => $user]);
+    }
+
+    public function nonaktifkan(Request $request, int $id)
+    {
+        abort_unless($request->user()?->hasRole('admin'), 403);
+        $user = User::findOrFail($id);
+        if ($user->id === $request->user()->id) {
+            throw new BusinessRuleException('Anda tidak dapat menonaktifkan akun sendiri.', 'STATUS_TIDAK_VALID', 409);
+        }
+
+        $currentRole = $user->role instanceof \BackedEnum ? $user->role->value : $user->role;
+        $this->cekAdminTerakhir($user, $currentRole, false);
+        $sebelum = $user->only(['role', 'is_active']);
+        $user->update(['is_active' => false]);
+        Audit::log($request->user()->id, 'user.nonaktifkan', 'User', $user->id, $sebelum, $user->only(['role', 'is_active']));
+        return response()->json(['data' => $user]);
     }
 
     private function cekAdminTerakhir($user, $newRole, $newActive)

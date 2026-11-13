@@ -11,11 +11,17 @@ class MasterRequest extends FormRequest
     {
         $user = $this->user();
         $tipe = $this->route('tipe_master');
+        $action = $this->route()->getActionMethod();
 
-        if ($user?->hasRole('admin')) return true;
+        if ($tipe === 'tahap' && $action !== 'update') {
+            return false;
+        }
+        if ($user?->hasRole('admin')) {
+            return true;
+        }
 
         if ($user?->hasRole('manajer')) {
-            return in_array($tipe, ['pelanggan', 'supplier', 'produk', 'ukuran', 'warna', 'satuan', 'jenis-cacat', 'line-produksi']);
+            return in_array($tipe, ['pelanggan', 'supplier', 'produk', 'ukuran', 'warna', 'satuan', 'jenis-cacat', 'line-produksi', 'tahap']);
         }
         if ($user?->hasRole('staf_order')) {
             return $tipe === 'pelanggan';
@@ -31,15 +37,29 @@ class MasterRequest extends FormRequest
     {
         $tipe = $this->route('tipe_master');
         $id = $this->route('id');
+        $action = $this->route()->getActionMethod();
+
+        if (in_array($action, ['destroy', 'aktifkan', 'nonaktifkan'], true)) {
+            return [];
+        }
+
+        if ($tipe === 'tahap') {
+            return ['nama' => 'required|string|max:50'];
+        }
+
         $tableName = str_replace('-', '_', $tipe);
-        
+
         // Pengecualian nama tabel plural untuk master tertentu
-        if ($tipe === 'jenis-cacat') $tableName = 'jenis_cacat';
-        if ($tipe === 'line-produksi') $tableName = 'line_produksi';
+        if ($tipe === 'jenis-cacat') {
+            $tableName = 'jenis_cacat';
+        }
+        if ($tipe === 'line-produksi') {
+            $tableName = 'line_produksi';
+        }
 
         $rules = [
             'nama' => 'required|string|max:150',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
         ];
 
         // Validasi unik untuk kolom kode (kecuali warna yang tidak punya kode)
@@ -63,7 +83,9 @@ class MasterRequest extends FormRequest
             $rules['telepon'] = 'nullable|string|max:25';
             $rules['email'] = 'nullable|email|max:150';
             $rules['alamat'] = 'nullable|string';
-            if ($tipe === 'pelanggan') $rules['kota'] = 'nullable|string|max:80';
+            if ($tipe === 'pelanggan') {
+                $rules['kota'] = 'nullable|string|max:80';
+            }
         }
 
         return $rules;

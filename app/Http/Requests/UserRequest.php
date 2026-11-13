@@ -14,21 +14,21 @@ class UserRequest extends FormRequest
 
     public function rules(): array
     {
-        $id = $this->route('id');
+        $id = $this->route('pengguna') ?? $this->route('id');
         $rules = [
             'name' => 'required|string|max:100',
             'username' => ['required', 'string', 'max:50', Rule::unique('users')->ignore($id)],
             'email' => ['nullable', 'email', 'max:150', Rule::unique('users')->ignore($id)],
             'role' => 'required|in:admin,manajer,staf_order,gudang,supervisor,qc,pimpinan',
             'no_hp' => 'nullable|string|max:20',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
         ];
 
         // Supervisor wajib punya tahap_id
         if ($this->input('role') === 'supervisor') {
             $rules['tahap_id'] = 'required|exists:tahap,id';
         } else {
-            $rules['tahap_id'] = 'nullable|in:null'; // Pastikan null jika bukan supervisor
+            $rules['tahap_id'] = 'nullable|exists:tahap,id';
         }
 
         // Password wajib saat pembuatan baru
@@ -45,7 +45,7 @@ class UserRequest extends FormRequest
     {
         return [
             'tahap_id.required' => 'Tahap wajib diisi untuk role Supervisor.',
-            'tahap_id.in' => 'Tahap harus dikosongkan untuk role selain Supervisor.'
+            'tahap_id.exists' => 'Tahap tidak valid.',
         ];
     }
 }

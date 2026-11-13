@@ -14,7 +14,8 @@ class BahanRequest extends FormRequest
 
     public function rules(): array
     {
-        $id = $this->route('id');
+        $id = $this->route('bahan') ?? $this->route('id');
+
         return [
             'kode' => ['nullable', 'string', 'max:30', Rule::unique('bahan', 'kode')->ignore($id)],
             'nama' => 'required|string|max:150',
@@ -25,7 +26,7 @@ class BahanRequest extends FormRequest
             'harga_terakhir' => 'nullable|numeric|min:0',
             'supplier_id' => 'nullable|exists:supplier,id',
             'lokasi_rak' => 'nullable|string|max:50',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
             // Perhatikan: 'stok' dan 'stok_dipesan' sengaja tidak dimasukkan agar tidak bisa dimanipulasi dari endpoint ini.
         ];
     }

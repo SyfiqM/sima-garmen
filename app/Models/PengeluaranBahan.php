@@ -22,6 +22,7 @@ class PengeluaranBahan extends Model
         'alasan_lebih',
         'disetujui_oleh',
         'status',
+        'status_persetujuan',
         'void_alasan',
         'void_oleh',
         'void_at',
