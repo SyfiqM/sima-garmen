@@ -134,7 +134,10 @@ class WorkOrderService
                        'catatan_penutupan' => 'Ditutup otomatis oleh sistem karena produksi selesai.'
                    ]);
 
-            // 3. Status order diturunkan dari produksi dan pengiriman (OrderStatusService).
+            // 3. Sisa reservasi bahan dilepas agar tidak menahan stok order lain.
+            $this->reservationService->lepasSisaReservasiWo($wo);
+
+            // 4. Status order diturunkan dari produksi dan pengiriman (OrderStatusService).
             app(OrderStatusService::class)->hitungUlang($wo->order);
         }
     }
@@ -187,6 +190,7 @@ class WorkOrderService
             //    atau order yang dihentikan).
             $order = $wo->order;
             $order->update(['ditutup_kurang' => 1, 'alasan_tutup_kurang' => $alasan]);
+            $this->reservationService->lepasSisaReservasiWo($wo);
             app(OrderStatusService::class)->hitungUlang($order, $userId);
 
             Audit::log($userId, 'wo.tutup_kurang', 'WorkOrder', $wo->id, ['status' => 'aktif'], ['status' => 'ditutup_kurang'], $alasan);
@@ -219,6 +223,15 @@ class WorkOrderService
     {
         $query = WorkOrder::with([
             'order.pelanggan',
+            'woItems' => fn ($items) => $items->addSelect([
+                'qty_dalam_sj_disiapkan' => DB::table('packing_items as pi')
+                    ->join('packing as pk', 'pk.id', '=', 'pi.packing_id')
+                    ->join('pengiriman_koli as pko', 'pko.packing_id', '=', 'pk.id')
+                    ->join('pengiriman as pg', 'pg.id', '=', 'pko.pengiriman_id')
+                    ->whereColumn('pi.wo_item_id', 'wo_items.id')
+                    ->where('pg.status', 'disiapkan')
+                    ->selectRaw('COALESCE(SUM(pi.qty), 0)'),
+            ]),
             'woItems.orderItem.produk', 'woItems.orderItem.warna', 'woItems.orderItem.ukuran',
             'woTahap.tahap',
             'woBahan.bahan',
@@ -227,9 +240,48 @@ class WorkOrderService
         $this->batasiAkses($query, $user);
 
         $wo = $query->findOrFail($id);
-        $wo->woItems->each(fn (WoItem $i) => $i->append([
-            'cutting_boleh', 'sewing_tersedia', 'finishing_tersedia', 'qc_tersedia', 'packing_tersedia', 'kirim_tersedia',
-        ]));
+
+        if ($user->hasRole('supervisor')) {
+            $tahap = Tahap::findOrFail($user->tahap_id);
+            $wo->setRelation('woTahap', $wo->woTahap->where('tahap_id', $tahap->id)->values());
+            $wo->setRelation('woBahan', $wo->woBahan->where('tahap_id', $tahap->id)->values());
+
+            if ($tahap->kode->value !== 'finishing') {
+                $wo->unsetRelation('packing');
+            }
+
+            $hiddenByStage = match ($tahap->kode->value) {
+                'cutting' => [
+                    'qty_sewing', 'qty_sewing_reject', 'qty_finishing', 'qty_finishing_reject',
+                    'qty_qc_diperiksa', 'qty_qc_lolos', 'qty_qc_reject', 'qty_repair_open',
+                    'qty_repair_selesai', 'qty_packing', 'qty_terkirim',
+                ],
+                'sewing' => [
+                    'qty_cutting_reject', 'qty_finishing', 'qty_finishing_reject', 'qty_qc_diperiksa',
+                    'qty_qc_lolos', 'qty_qc_reject', 'qty_repair_open', 'qty_repair_selesai',
+                    'qty_packing', 'qty_terkirim',
+                ],
+                default => [
+                    'qty_cutting', 'qty_cutting_reject', 'qty_sewing_reject', 'qty_qc_diperiksa',
+                    'qty_qc_reject', 'qty_repair_open', 'qty_repair_selesai', 'qty_terkirim',
+                ],
+            };
+
+            $availability = match ($tahap->kode->value) {
+                'cutting' => ['cutting_boleh'],
+                'sewing' => ['sewing_tersedia'],
+                'finishing' => ['finishing_tersedia', 'packing_tersedia'],
+            };
+
+            $wo->woItems->each(function (WoItem $item) use ($hiddenByStage, $availability) {
+                $item->makeHidden($hiddenByStage);
+                $item->append($availability);
+            });
+        } else {
+            $wo->woItems->each(fn (WoItem $item) => $item->append([
+                'cutting_boleh', 'sewing_tersedia', 'finishing_tersedia', 'qc_tersedia', 'packing_tersedia', 'kirim_tersedia',
+            ]));
+        }
 
         return $wo;
     }

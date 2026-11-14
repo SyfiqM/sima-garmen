@@ -252,6 +252,21 @@ class ProductionService
             $woTahap->update(['status' => 'selesai', 'selesai_at' => now(), 'ditutup_oleh' => $userId, 'catatan_penutupan' => $alasan]);
             Audit::log($userId, 'produksi.tahap_tutup', 'WorkOrder', $workOrder->id, null, ['kode' => $kodeTahap, 'sisa_antrean' => $sisaAntrean], $alasan);
 
+            $tahapBerikut = Tahap::where('urutan', '>', $tahap->urutan)->orderBy('urutan')->first();
+            if ($tahapBerikut) {
+                NotificationService::toRoles(
+                    ['supervisor'],
+                    "Tahap {$tahap->nama} ditutup",
+                    "{$workOrder->no_wo}: hasil {$tahap->nama} tersedia untuk {$tahapBerikut->nama}.",
+                    null,
+                    'info',
+                    $userId,
+                    $tahapBerikut->id,
+                );
+            } else {
+                NotificationService::toRoles(['qc'], "Tahap {$tahap->nama} ditutup", "{$workOrder->no_wo}: hasil {$tahap->nama} siap diinspeksi QC.", null, 'info', $userId);
+            }
+
             return $woTahap;
         });
     }

@@ -52,7 +52,8 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $data = $request->validated();
         
-        if (!empty($data['password'])) {
+        $passwordBerubah = !empty($data['password']);
+        if ($passwordBerubah) {
             $data['password'] = Hash::make($data['password']);
         } else {
             unset($data['password']);
@@ -64,6 +65,9 @@ class UserController extends Controller
 
         $sebelum = $user->toArray();
         $user->update($data);
+        if ($passwordBerubah || ($data['is_active'] ?? true) === false) {
+            $user->tokens()->delete();
+        }
 
         if (class_exists(Audit::class)) Audit::log($request->user()->id, 'user.update', 'User', $user->id, $sebelum, $user->toArray(), 'Update pengguna');
         return response()->json(['data' => $user]);
@@ -79,6 +83,7 @@ class UserController extends Controller
         }
         $this->cekAdminTerakhir($user, 'non_admin', 0); // Simulasi hapus untuk cek
 
+        $user->tokens()->delete();
         $user->delete();
         if (class_exists(Audit::class)) Audit::log($request->user()->id, 'user.delete', 'User', $user->id, $user->toArray(), null, 'Hapus pengguna');
         return response()->json(null, 204);
@@ -91,6 +96,7 @@ class UserController extends Controller
         
         $user = User::findOrFail($id);
         $user->update(['password' => Hash::make($request->password)]);
+        $user->tokens()->delete(); // sesi lama tidak boleh tetap berlaku setelah reset
         
         if (class_exists(Audit::class)) Audit::log($request->user()->id, 'user.reset_password', 'User', $user->id, null, null, 'Reset password oleh Admin');
         return response()->json(['message' => 'Password berhasil di-reset.']);
@@ -118,6 +124,7 @@ class UserController extends Controller
         $this->cekAdminTerakhir($user, $currentRole, false);
         $sebelum = $user->only(['role', 'is_active']);
         $user->update(['is_active' => false]);
+        $user->tokens()->delete();
         Audit::log($request->user()->id, 'user.nonaktifkan', 'User', $user->id, $sebelum, $user->only(['role', 'is_active']));
         return response()->json(['data' => $user]);
     }

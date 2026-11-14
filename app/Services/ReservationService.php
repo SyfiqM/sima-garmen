@@ -3,8 +3,12 @@
 namespace App\Services;
 
 use App\Exceptions\BusinessRuleException;
+use App\Helpers\Audit;
 use App\Models\Bahan;
+use App\Models\Order;
+use App\Models\Tahap;
 use App\Models\WoBahan;
+use App\Models\WorkOrder;
 
 class ReservationService
 {
@@ -105,5 +109,58 @@ class ReservationService
         foreach ($woBahans as $wb) {
             $this->alokasi($wb);
         }
+
+        $this->naikkanOrderYangBahannyaTerpenuhi();
+    }
+
+    /**
+     * Bagian 4.3: order menunggu_bahan otomatis menjadi siap_produksi bila semua wo_bahan
+     * tahap cutting sudah terpenuhi reservasinya (aturan yang sama dengan saat persetujuan).
+     */
+    protected function naikkanOrderYangBahannyaTerpenuhi(): void
+    {
+        $cuttingId = Tahap::where('kode', 'cutting')->value('id');
+        if (! $cuttingId) {
+            return;
+        }
+
+        $orders = Order::where('status', 'menunggu_bahan')->lockForUpdate()->get();
+        foreach ($orders as $order) {
+            $wo = WorkOrder::where('order_id', $order->id)->where('status', 'aktif')->first();
+            if (! $wo) {
+                continue;
+            }
+
+            $masihKurang = WoBahan::where('wo_id', $wo->id)
+                ->where('tahap_id', $cuttingId)
+                ->whereColumn('qty_reservasi', '<', 'qty_rencana')
+                ->exists();
+            if ($masihKurang) {
+                continue;
+            }
+
+            $order->update(['status' => 'siap_produksi']);
+            Audit::log(null, 'order.siap_produksi_otomatis', 'Order', $order->id, ['status' => 'menunggu_bahan'], ['status' => 'siap_produksi'], 'Bahan cutting terpenuhi setelah alokasi ulang');
+            NotificationService::toRoles(
+                ['gudang'],
+                'WO siap diproduksi',
+                "{$wo->no_wo} ({$order->no_order}): bahan cutting sudah terpenuhi dan siap dikeluarkan.",
+                null,
+                'sukses',
+            );
+        }
+    }
+
+    /**
+     * Lepas sisa reservasi seluruh bahan sebuah WO (dipakai saat WO selesai atau ditutup kurang),
+     * lalu alokasikan stok yang bebas ke order lain yang menunggu.
+     */
+    public function lepasSisaReservasiWo(WorkOrder $wo): void
+    {
+        foreach (WoBahan::where('wo_id', $wo->id)->lockForUpdate()->get() as $woBahan) {
+            $this->lepasReservasi($woBahan);
+        }
+
+        $this->alokasiUlang();
     }
 }

@@ -20,12 +20,15 @@ class AuthController extends Controller
             'device_name' => 'nullable|string',
         ]);
 
-        $key = 'login.' . $request->ip();
+        // Kunci per (login, IP): satu IP kantor (NAT) tidak saling mengunci akun lain.
+        $key = 'login.'.mb_strtolower($request->login).'|'.$request->ip();
         if (RateLimiter::tooManyAttempts($key, 5)) {
             $seconds = RateLimiter::availableIn($key);
-            throw ValidationException::withMessages([
-                'login' => ["Terlalu banyak percobaan. Coba lagi dalam $seconds detik."],
-            ]);
+
+            return response()->json([
+                'message' => "Terlalu banyak percobaan. Coba lagi dalam $seconds detik.",
+                'code' => 'TERLALU_BANYAK_PERCOBAAN',
+            ], 429)->header('Retry-After', (string) $seconds);
         }
 
         $user = User::where('username', $request->login)

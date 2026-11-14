@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: SIMA Garmen API
   version: 1.1.0
-  description: 'API backend SIMA Garmen, Batch 1B sampai Batch 7.
+  description: 'API backend SIMA Garmen, mencakup implementasi Batch 1B sampai Batch 9 (rilis backend v1.0.0).
 
 
     **Format respons**
@@ -19,6 +19,10 @@ info:
     } }`.
 
     - Unduhan PDF dan berkas memerlukan header Authorization, jadi unduh sebagai blob.
+    - Update pada resource bahan, produk, pengguna, order, PO, dan opname menerima PUT maupun PATCH.
+    - Cakupan Batch 9 mencakup penyempurnaan audit log, filter order, pembatasan data Work Order per role,
+      ketersediaan koli untuk pengiriman, PDF transaksi, notifikasi deadline, dan dukungan pemeriksaan integritas.
+    - Pemeriksaan integritas dijalankan melalui perintah Artisan `php artisan sima:check-integrity`, bukan endpoint API.
 
     '
 servers:
@@ -33,7 +37,7 @@ tags:
   - name: Master Data
     description: Master data, bahan, produk, dan BOM (Batch 2).
   - name: Pengguna dan Pengaturan
-    description: Pengguna, pengaturan sistem, dan audit log (Batch 2).
+    description: Pengguna, pengaturan sistem, dan audit log (fondasi Batch 2 serta penyempurnaan Batch 9).
   - name: Order
     description: Order, persetujuan, revisi, dan lampiran (Batch 3).
   - name: Work Order
@@ -45,7 +49,7 @@ tags:
   - name: QC, Repair, dan Packing
     description: Inspeksi QC, repair, dan koli (Batch 6).
   - name: Dashboard dan Laporan
-    description: Dashboard per role dan 16 laporan (Batch 8).
+    description: Dashboard per role dan 16 laporan (Batch 8), termasuk penyempurnaan filter dan konsistensi data Batch 9.
   - name: Pengiriman
     description: Surat jalan dan konfirmasi penerimaan (Batch 7).
 paths:
@@ -265,6 +269,14 @@ paths:
             minimum: 1
             maximum: 100
           description: Jumlah data per halaman (default 25).
+        - in: query
+          name: sort
+          required: false
+          schema:
+            type: string
+            enum: [created_at, -created_at, deadline, -deadline, tgl_order, -tgl_order, no_order, -no_order]
+            default: -created_at
+          description: Kolom pengurutan; awalan minus berarti descending.
       responses:
         "200":
           description: Daftar terpaginasi (format paginator Laravel).
@@ -838,6 +850,43 @@ paths:
           $ref: "#/components/responses/NotFound"
         "422":
           $ref: "#/components/responses/Unprocessable"
+    patch:
+      tags:
+        - Master Data
+      summary: Ubah bahan (PATCH)
+      description: "**Hak akses:** admin, gudang."
+      operationId: patch_bahan_id
+      x-roles: admin, gudang
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+              additionalProperties: true
+      responses:
+        "200":
+          description: Berhasil.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Single"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
     delete:
       tags:
         - Master Data
@@ -1015,6 +1064,43 @@ paths:
       summary: Ubah produk
       description: "**Hak akses:** admin, manajer."
       operationId: put_produk_id
+      x-roles: admin, manajer
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+              additionalProperties: true
+      responses:
+        "200":
+          description: Berhasil.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Single"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+    patch:
+      tags:
+        - Master Data
+      summary: Ubah produk (PATCH)
+      description: "**Hak akses:** admin, manajer."
+      operationId: patch_produk_id
       x-roles: admin, manajer
       parameters:
         - in: path
@@ -1461,6 +1547,43 @@ paths:
           $ref: "#/components/responses/NotFound"
         "422":
           $ref: "#/components/responses/Unprocessable"
+    patch:
+      tags:
+        - Pengguna dan Pengaturan
+      summary: Ubah pengguna (PATCH)
+      description: "**Hak akses:** admin."
+      operationId: patch_pengguna_id
+      x-roles: admin
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+              additionalProperties: true
+      responses:
+        "200":
+          description: Berhasil.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Single"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
     delete:
       tags:
         - Pengguna dan Pengaturan
@@ -1720,6 +1843,33 @@ paths:
               - tinggi
               - urgent
         - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+            maxLength: 100
+          description: Cari nomor order atau nama pelanggan.
+        - in: query
+          name: tgl_dari
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Filter berdasarkan tanggal order mulai.
+        - in: query
+          name: tgl_sampai
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Filter berdasarkan tanggal order akhir, tidak boleh sebelum tgl_dari.
+        - in: query
+          name: terlambat
+          required: false
+          schema:
+            type: boolean
+          description: true untuk deadline lewat dan order belum terkirim; false untuk order yang tidak terlambat.
+        - in: query
           name: per_page
           required: false
           schema:
@@ -1872,6 +2022,116 @@ paths:
       summary: Ubah order (hanya draft atau ditolak)
       description: "**Hak akses:** pembuat order, admin, manajer."
       operationId: put_order_id
+      x-roles: pembuat order, admin, manajer
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pelanggan_id:
+                  type: integer
+                  example: 1
+                no_po_pelanggan:
+                  type: string
+                  example: PO-2026-01
+                  maxLength: 50
+                tgl_order:
+                  type: string
+                  format: date
+                  example: "2026-11-12"
+                deadline:
+                  type: string
+                  format: date
+                  example: "2026-12-12"
+                  description: Harus sama atau setelah tgl_order.
+                prioritas:
+                  type: string
+                  example: normal
+                  enum:
+                    - normal
+                    - tinggi
+                    - urgent
+                alamat_kirim:
+                  type: string
+                  example: Jl. Contoh No. 1
+                catatan:
+                  type: string
+                  example: Catatan
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      produk_id:
+                        type: integer
+                        example: 1
+                      warna_id:
+                        type: integer
+                        example: 1
+                      ukuran_id:
+                        type: integer
+                        example: 1
+                      qty:
+                        type: integer
+                        example: 100
+                        minimum: 1
+                      harga_satuan:
+                        type:
+                          - number
+                          - "null"
+                        example: 55000
+                        minimum: 0
+                      spesifikasi:
+                        type:
+                          - string
+                          - "null"
+                        example: Label premium
+                    required:
+                      - produk_id
+                      - warna_id
+                      - ukuran_id
+                      - qty
+                  minItems: 1
+              required:
+                - pelanggan_id
+                - tgl_order
+                - deadline
+                - prioritas
+                - items
+      responses:
+        "200":
+          description: Berhasil.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Single"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          description: STATUS_TIDAK_VALID bila status tidak memungkinkan ubah.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - Order
+      summary: Ubah order (hanya draft atau ditolak) (PATCH)
+      description: "**Hak akses:** pembuat order, admin, manajer."
+      operationId: patch_order_id
       x-roles: pembuat order, admin, manajer
       parameters:
         - in: path
@@ -2803,8 +3063,7 @@ paths:
         - Work Order
       summary: "Detail WO: item beserta counter, tahap, bahan, dan koli"
       description:
-        "Setiap `wo_items[]` menyertakan `cutting_boleh`, `sewing_tersedia`, `finishing_tersedia`, `qc_tersedia`,
-        `packing_tersedia`, dan `kirim_tersedia`.
+        "Setiap role menerima data sesuai cakupan. Supervisor hanya menerima counter, tahap, dan bahan untuk tahap miliknya; Supervisor Finishing juga menerima data packing. Role lain yang berhak melihat WO menerima detail lintas tahap.
 
 
         **Hak akses:** semua role."
@@ -2824,6 +3083,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Single"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /work-order/{id}/cetak:
+    get:
+      tags:
+        - Work Order
+      summary: Cetak Work Order / Surat Perintah Kerja (PDF)
+      description: "**Hak akses:** semua role yang dapat melihat WO."
+      operationId: get_work_order_id_cetak
+      x-roles: semua role yang dapat melihat WO
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        "200":
+          description: File PDF berhasil dibuat.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -3387,6 +3675,84 @@ paths:
           $ref: "#/components/responses/NotFound"
         "422":
           $ref: "#/components/responses/Unprocessable"
+    patch:
+      tags:
+        - Stok dan Pembelian
+      summary: Ubah PO (hanya draft) (PATCH)
+      description: "**Hak akses:** admin, gudang."
+      operationId: patch_po_id
+      x-roles: admin, gudang
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                supplier_id:
+                  type: integer
+                  example: 1
+                tgl_po:
+                  type: string
+                  format: date
+                  example: "2026-11-12"
+                tgl_estimasi_tiba:
+                  type: string
+                  format: date
+                  example: "2026-11-19"
+                catatan:
+                  type: string
+                  example: Catatan
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      bahan_id:
+                        type: integer
+                        example: 1
+                      qty_pesan:
+                        type: number
+                        example: 100
+                        minimum: 0.001
+                      harga_satuan:
+                        type: number
+                        example: 25000
+                        minimum: 0
+                      keterangan:
+                        type: string
+                        example: Kain
+                    required:
+                      - bahan_id
+                      - qty_pesan
+                      - harga_satuan
+                  minItems: 1
+              required:
+                - supplier_id
+                - tgl_po
+                - items
+      responses:
+        "200":
+          description: Berhasil.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Single"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
     delete:
       tags:
         - Stok dan Pembelian
@@ -3482,6 +3848,35 @@ paths:
           $ref: "#/components/responses/NotFound"
         "422":
           $ref: "#/components/responses/Unprocessable"
+  /po/{id}/cetak:
+    get:
+      tags:
+        - Stok dan Pembelian
+      summary: Cetak Purchase Order (PDF)
+      description: "**Hak akses:** admin, manajer, gudang, pimpinan."
+      operationId: get_po_id_cetak
+      x-roles: admin, manajer, gudang, pimpinan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        "200":
+          description: File PDF berhasil dibuat.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /penerimaan:
     get:
       tags:
@@ -3676,6 +4071,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /penerimaan/{id}/cetak:
+    get:
+      tags:
+        - Stok dan Pembelian
+      summary: Cetak bukti penerimaan bahan (PDF)
+      description: "**Hak akses:** admin, manajer, gudang, pimpinan."
+      operationId: get_penerimaan_id_cetak
+      x-roles: admin, manajer, gudang, pimpinan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        "200":
+          description: File PDF berhasil dibuat.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /opname:
     get:
       tags:
@@ -3797,6 +4221,150 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+    put:
+      tags:
+        - Stok dan Pembelian
+      summary: Perbarui draft stok opname
+      description: "Hanya dokumen berstatus draft milik pembuat atau Admin yang dapat diubah. Snapshot stok sistem dan selisih dihitung ulang ketika disimpan. **Hak akses:** admin, gudang (draft milik sendiri)."
+      operationId: put_opname_id
+      x-roles: admin, gudang (draft milik sendiri)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tanggal:
+                  type: string
+                  format: date
+                  example: "2026-11-12"
+                catatan:
+                  type: string
+                  example: Opname hasil hitung ulang
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    properties:
+                      bahan_id:
+                        type: integer
+                        example: 1
+                      stok_fisik:
+                        type: number
+                        example: 48.5
+                        minimum: 0
+                      alasan:
+                        type: string
+                        minLength: 5
+                        maxLength: 255
+                    required:
+                      - bahan_id
+                      - stok_fisik
+              required:
+                - tanggal
+                - items
+      responses:
+        "200":
+          description: Draft berhasil diperbarui.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Single"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Dokumen bukan draft sehingga tidak dapat diubah.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
+    patch:
+      tags:
+        - Stok dan Pembelian
+      summary: Perbarui draft stok opname (PATCH)
+      description: "Hanya dokumen berstatus draft milik pembuat atau Admin yang dapat diubah. Snapshot stok sistem dan selisih dihitung ulang ketika disimpan. **Hak akses:** admin, gudang (draft milik sendiri)."
+      operationId: patch_opname_id
+      x-roles: admin, gudang (draft milik sendiri)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tanggal:
+                  type: string
+                  format: date
+                  example: "2026-11-12"
+                catatan:
+                  type: string
+                  example: Opname hasil hitung ulang
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    properties:
+                      bahan_id:
+                        type: integer
+                        example: 1
+                      stok_fisik:
+                        type: number
+                        example: 48.5
+                        minimum: 0
+                      alasan:
+                        type: string
+                        minLength: 5
+                        maxLength: 255
+                    required:
+                      - bahan_id
+                      - stok_fisik
+              required:
+                - tanggal
+                - items
+      responses:
+        "200":
+          description: Draft berhasil diperbarui.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Single"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Dokumen bukan draft sehingga tidak dapat diubah.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          $ref: "#/components/responses/Unprocessable"
   /opname/{id}/ajukan:
     post:
       tags:
@@ -4072,6 +4640,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Single"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /pengeluaran-bahan/{id}/cetak:
+    get:
+      tags:
+        - Pengeluaran Bahan dan Produksi
+      summary: Cetak bukti pengeluaran atau retur bahan (PDF)
+      description: "**Hak akses:** admin, manajer, gudang, supervisor (tahapnya), pimpinan."
+      operationId: get_pengeluaran_bahan_id_cetak
+      x-roles: admin, manajer, gudang, supervisor (tahapnya), pimpinan
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        "200":
+          description: File PDF berhasil dibuat.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -5345,15 +5942,54 @@ paths:
       description: "Maks 30 permintaan per menit. kartu-stok wajib bahan_id. Hak akses per jenis: lihat CATATAN_API.md bagian 10."
       operationId: get_laporan_jenis
       parameters:
-        - {in: path, name: jenis, required: true, schema: {type: string, enum: [order, progres-wo, produksi-harian, wip, reject, repair, stok-bahan, kartu-stok, kebutuhan-vs-stok, pemakaian-bahan, pembelian, penerimaan, pengiriman, on-time-delivery, opname, audit-log]}}
-        - {in: query, name: format, schema: {type: string, enum: [json, pdf, xlsx], default: json}}
-        - {in: query, name: tgl_dari, schema: {type: string, format: date}}
-        - {in: query, name: tgl_sampai, schema: {type: string, format: date}}
-        - {in: query, name: page, schema: {type: integer}}
-        - {in: query, name: per_page, schema: {type: integer, maximum: 500}}
-        - {in: query, name: status, schema: {type: string}}
-        - {in: query, name: bahan_id, schema: {type: integer}}
-        - {in: query, name: kelompok, schema: {type: string, enum: [tahap, produk, line, jenis_cacat]}}
+        - {
+            in: path,
+            name: jenis,
+            required: true,
+            schema:
+              {
+                type: string,
+                enum:
+                  [
+                    order,
+                    progres-wo,
+                    produksi-harian,
+                    wip,
+                    reject,
+                    repair,
+                    stok-bahan,
+                    kartu-stok,
+                    kebutuhan-vs-stok,
+                    pemakaian-bahan,
+                    pembelian,
+                    penerimaan,
+                    pengiriman,
+                    on-time-delivery,
+                    opname,
+                    audit-log,
+                  ],
+              },
+          }
+        - {
+            in: query,
+            name: format,
+            schema: { type: string, enum: [json, pdf, xlsx], default: json },
+          }
+        - { in: query, name: tgl_dari, schema: { type: string, format: date } }
+        - {
+            in: query,
+            name: tgl_sampai,
+            schema: { type: string, format: date },
+          }
+        - { in: query, name: page, schema: { type: integer } }
+        - { in: query, name: per_page, schema: { type: integer, maximum: 500 } }
+        - { in: query, name: status, schema: { type: string } }
+        - { in: query, name: bahan_id, schema: { type: integer } }
+        - {
+            in: query,
+            name: kelompok,
+            schema: { type: string, enum: [tahap, produk, line, jenis_cacat] },
+          }
       responses:
         "200":
           description: JSON laporan, atau berkas PDF/XLSX (unduh sebagai blob).

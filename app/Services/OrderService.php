@@ -77,10 +77,14 @@ class OrderService
 
     public function update($orderId, array $data, int $userId)
     {
+        // HAPUS pengecekan if(!in_array($orderId->status->value)) di sini karena
+        // $orderId adalah string/integer, bukan objek Order.
+
         return DB::transaction(function () use ($orderId, $data, $userId) {
             $order = Order::lockForUpdate()->findOrFail($orderId);
             $this->authorizeOwnerOrManager($order, $userId);
 
+            // Validasi ini sudah benar posisinya karena $order sudah menjadi instans Model
             if (! in_array($this->statusValue($order->status), ['draft', 'ditolak'], true)) {
                 throw new BusinessRuleException('Hanya order berstatus draft atau ditolak yang dapat diubah sepenuhnya.', 'STATUS_TIDAK_VALID', 422);
             }
@@ -235,6 +239,8 @@ class OrderService
                 Audit::log($userId, "order.{$aksi}", 'Order', $order->id, $sebelum, $order->toArray(), $pesanAudit);
             }
 
+            $this->kirimNotifikasiStatus($aksi, $order, $userId);
+
             return $order;
         });
     }
@@ -292,6 +298,13 @@ class OrderService
     private function batalkanWorkOrderDanReservasi(Order $order, string $statusWo = 'dibatalkan'): void
     {
         $wo = WorkOrder::where('order_id', $order->id)->where('status', 'aktif')->first();
+
+        // Revisi dan batal hanya bila belum ada pengeluaran bahan (4.3). Hentikan justru untuk yang sudah berjalan.
+        if ($wo && $statusWo === 'dibatalkan'
+            && $wo->woBahan()->where('qty_keluar', '>', 0)->exists()) {
+            throw new BusinessRuleException('Bahan sudah dikeluarkan, gunakan Hentikan.', 'SUDAH_ADA_PENGELUARAN', 422);
+        }
+
         if ($wo) {
             $wo->status = $statusWo;
             $wo->save();
@@ -342,6 +355,43 @@ class OrderService
     {
         if ($alasan === null || mb_strlen(trim($alasan)) < 5) {
             throw new BusinessRuleException('Alasan wajib diisi minimal 5 karakter.', 'ALASAN_WAJIB', 422);
+        }
+    }
+
+    /**
+     * Notifikasi bagian 4.15: order diajukan, disetujui/ditolak, WO siap_produksi, dan menunggu_bahan.
+     * Pelaku aksi tidak ikut diberi notifikasi.
+     */
+    private function kirimNotifikasiStatus(string $aksi, Order $order, int $userId): void
+    {
+        $no = $order->no_order;
+        $status = $this->statusValue($order->status);
+        $pembuatBukanPelaku = $order->dibuat_oleh && (int) $order->dibuat_oleh !== $userId;
+
+        if ($aksi === 'ajukan') {
+            NotificationService::toRoles(['manajer'], 'Order diajukan', "Order {$no} menunggu persetujuan.", null, 'info', $userId);
+
+            return;
+        }
+
+        if ($aksi === 'tolak') {
+            if ($pembuatBukanPelaku) {
+                NotificationService::toUsers($order->dibuat_oleh, 'Order ditolak', "Order {$no} ditolak. Alasan: {$order->alasan_penolakan}", null, 'bahaya');
+            }
+
+            return;
+        }
+
+        if ($aksi === 'setujui') {
+            if ($pembuatBukanPelaku) {
+                NotificationService::toUsers($order->dibuat_oleh, 'Order disetujui', "Order {$no} disetujui (status: ".str_replace('_', ' ', $status).').', null, 'sukses');
+            }
+
+            if ($status === 'siap_produksi') {
+                NotificationService::toRoles(['gudang'], 'WO siap diproduksi', "Order {$no}: bahan sudah terpenuhi dan siap dikeluarkan.", null, 'sukses', $userId);
+            } else {
+                NotificationService::toRoles(['gudang', 'manajer'], 'Order menunggu bahan', "Order {$no} menunggu bahan. Lihat halaman Kekurangan Bahan.", null, 'peringatan', $userId);
+            }
         }
     }
 }

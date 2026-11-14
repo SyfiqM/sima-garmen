@@ -3,8 +3,9 @@
 namespace App\Services;
 
 use App\Exceptions\BusinessRuleException;
+use App\Helpers\Audit;
 use App\Models\Bahan;
-use App\Models\BOM; // Tambahan untuk fungsi hitungKebutuhan
+use App\Models\Bom; // Tambahan untuk fungsi hitungKebutuhan
 use App\Models\Order;
 use App\Models\Tahap;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,7 @@ class BomService
 
         foreach ($order->items as $item) {
             // Cari kandidat BOM (kosong atau spesifik ke item)
-            $boms = BOM::where('produk_id', $item->produk_id)
+            $boms = Bom::where('produk_id', $item->produk_id)
                 ->whereHas('bahan', fn ($query) => $query->where('is_active', true))
                 ->where(function ($q) use ($item) {
                     $q->whereNull('ukuran_id')->orWhere('ukuran_id', $item->ukuran_id);
@@ -76,7 +77,7 @@ class BomService
         $cuttingId = Tahap::where('kode', 'cutting')->value('id');
 
         foreach ($order->items as $item) {
-            $hasCuttingBom = BOM::where('produk_id', $item->produk_id)
+            $hasCuttingBom = Bom::where('produk_id', $item->produk_id)
                 ->where('tahap_id', $cuttingId)
                 ->where(function ($query) use ($item) {
                     $query->whereNull('ukuran_id')->orWhere('ukuran_id', $item->ukuran_id);
@@ -99,16 +100,16 @@ class BomService
 
     public function pratinjau(int $produkId, int $ukuranId, int $warnaId, int $qty): array
     {
-        $boms = BOM::with(['bahan.satuan', 'tahap'])
+        $boms = Bom::with(['bahan.satuan', 'tahap'])
             ->where('produk_id', $produkId)
             ->where(fn ($query) => $query->whereNull('ukuran_id')->orWhere('ukuran_id', $ukuranId))
             ->where(fn ($query) => $query->whereNull('warna_id')->orWhere('warna_id', $warnaId))
             ->get()
-            ->groupBy(fn (BOM $bom) => $bom->bahan_id.'_'.$bom->tahap_id);
+            ->groupBy(fn (Bom $bom) => $bom->bahan_id.'_'.$bom->tahap_id);
 
         $result = [];
         foreach ($boms as $group) {
-            $bom = $group->sortByDesc(fn (BOM $row) => ($row->ukuran_id ? 2 : 0) + ($row->warna_id ? 1 : 0))->first();
+            $bom = $group->sortByDesc(fn (Bom $row) => ($row->ukuran_id ? 2 : 0) + ($row->warna_id ? 1 : 0))->first();
             $qtyRencana = $qty * (float) $bom->qty_per_pcs * (1 + ((float) $bom->waste_persen / 100));
             $result[] = [
                 'bahan' => $bom->bahan,
@@ -124,58 +125,80 @@ class BomService
     // KODE ASLI ANDA UNTUK CRUD BOM CONTROLLER (BATCH 2)
     // ====================================================================
 
-    public function store($produkId, array $data)
+    public function store($produkId, array $data, int $userId): Bom
     {
-        $this->validateBahanAktif($data['bahan_id']);
-        $this->validateUnique($produkId, $data['bahan_id'], $data['tahap_id'], $data['ukuran_id'] ?? null, $data['warna_id'] ?? null);
+        return DB::transaction(function () use ($produkId, $data, $userId) {
+            $this->validateBahanAktif($data['bahan_id']);
+            $this->validateUnique($produkId, $data['bahan_id'], $data['tahap_id'], $data['ukuran_id'] ?? null, $data['warna_id'] ?? null);
 
-        $data['produk_id'] = $produkId;
+            $data['produk_id'] = $produkId;
 
-        // Gunakan nilai default dari pengaturan jika waste kosong
-        if (! isset($data['waste_persen']) || $data['waste_persen'] === null) {
-            $data['waste_persen'] = DB::table('pengaturan')->where('key', 'default_waste_persen')->value('value') ?? 5;
-        }
+            // Gunakan nilai default dari pengaturan jika waste kosong.
+            if (! isset($data['waste_persen']) || $data['waste_persen'] === null) {
+                $data['waste_persen'] = DB::table('pengaturan')->where('key', 'default_waste_persen')->value('value') ?? 5;
+            }
 
-        return BOM::create($data);
+            $bom = Bom::create($data);
+            Audit::log($userId, 'bom.create', 'Bom', $bom->id, null, $bom->toArray());
+
+            return $bom->load(['bahan', 'tahap', 'ukuran', 'warna']);
+        });
     }
 
-    public function update($bomId, array $data)
+    public function update($bomId, array $data, int $userId): Bom
     {
-        $bom = BOM::findOrFail($bomId);
+        return DB::transaction(function () use ($bomId, $data, $userId) {
+            $bom = Bom::whereKey($bomId)->lockForUpdate()->firstOrFail();
+            $sebelum = $bom->toArray();
 
-        $bahanId = $data['bahan_id'] ?? $bom->bahan_id;
-        $this->validateBahanAktif($bahanId);
+            $bahanId = $data['bahan_id'] ?? $bom->bahan_id;
+            $this->validateBahanAktif($bahanId);
 
-        $tahapId = $data['tahap_id'] ?? $bom->tahap_id;
-        $ukuranId = array_key_exists('ukuran_id', $data) ? $data['ukuran_id'] : $bom->ukuran_id;
-        $warnaId = array_key_exists('warna_id', $data) ? $data['warna_id'] : $bom->warna_id;
+            $tahapId = $data['tahap_id'] ?? $bom->tahap_id;
+            $ukuranId = array_key_exists('ukuran_id', $data) ? $data['ukuran_id'] : $bom->ukuran_id;
+            $warnaId = array_key_exists('warna_id', $data) ? $data['warna_id'] : $bom->warna_id;
 
-        $this->validateUnique($bom->produk_id, $bahanId, $tahapId, $ukuranId, $warnaId, $bom->id);
+            $this->validateUnique($bom->produk_id, $bahanId, $tahapId, $ukuranId, $warnaId, $bom->id);
+            $bom->update($data);
 
-        $bom->update($data);
+            Audit::log($userId, 'bom.update', 'Bom', $bom->id, $sebelum, $bom->fresh()->toArray());
 
-        return $bom;
+            return $bom->fresh()->load(['bahan', 'tahap', 'ukuran', 'warna']);
+        });
     }
 
-    public function copyFrom($produkTujuanId, $produkAsalId)
+    public function destroy(int $bomId, int $userId): void
     {
-        $bomAsal = BOM::where('produk_id', $produkAsalId)->get();
+        DB::transaction(function () use ($bomId, $userId) {
+            $bom = Bom::whereKey($bomId)->lockForUpdate()->firstOrFail();
+            $sebelum = $bom->toArray();
+            $bom->delete();
 
-        if ($bomAsal->isEmpty()) {
-            throw new BusinessRuleException('Produk asal tidak memiliki data BOM.', 'DATA_KOSONG', 422);
-        }
+            Audit::log($userId, 'bom.delete', 'Bom', $bomId, $sebelum, null);
+        });
+    }
 
-        DB::transaction(function () use ($produkTujuanId, $bomAsal) {
-            // Hapus BOM lama di produk tujuan
-            BOM::where('produk_id', $produkTujuanId)->delete();
+    public function copyFrom($produkTujuanId, $produkAsalId, int $userId): void
+    {
+        DB::transaction(function () use ($produkTujuanId, $produkAsalId, $userId) {
+            $bomAsal = Bom::where('produk_id', $produkAsalId)->orderBy('id')->get();
 
-            // Salin satu per satu
+            if ($bomAsal->isEmpty()) {
+                throw new BusinessRuleException('Produk asal tidak memiliki data BOM.', 'DATA_KOSONG', 422);
+            }
+
+            $sebelum = Bom::where('produk_id', $produkTujuanId)->orderBy('id')->get()->toArray();
+            Bom::where('produk_id', $produkTujuanId)->delete();
+
             foreach ($bomAsal as $bom) {
                 $baru = $bom->toArray();
                 unset($baru['id'], $baru['created_at'], $baru['updated_at']);
                 $baru['produk_id'] = $produkTujuanId;
-                BOM::create($baru);
+                Bom::create($baru);
             }
+
+            $sesudah = Bom::where('produk_id', $produkTujuanId)->orderBy('id')->get()->toArray();
+            Audit::log($userId, 'bom.copy', 'Produk', $produkTujuanId, $sebelum, $sesudah, "Salin BOM dari produk {$produkAsalId}");
         });
     }
 
@@ -189,7 +212,7 @@ class BomService
 
     private function validateUnique($produkId, $bahanId, $tahapId, $ukuranId = null, $warnaId = null, $ignoreBomId = null)
     {
-        $query = BOM::where('produk_id', $produkId)
+        $query = Bom::where('produk_id', $produkId)
             ->where('bahan_id', $bahanId)
             ->where('tahap_id', $tahapId);
 

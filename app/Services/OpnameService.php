@@ -29,39 +29,83 @@ class OpnameService
         $this->stockService = $stockService;
     }
 
-    public function store(array $data, int $userId)
+    public function store(array $data, int $userId): StokOpname
     {
         return DB::transaction(function () use ($data, $userId) {
-            $data['no_opname'] = NumberingService::next('OPN');
-            $data['status'] = 'draft';
-            $data['dibuat_oleh'] = $userId;
+            $opname = StokOpname::create([
+                'no_opname' => NumberingService::next('OPN'),
+                'tanggal' => $data['tanggal'],
+                'status' => 'draft',
+                'catatan' => $data['catatan'] ?? null,
+                'dibuat_oleh' => $userId,
+            ]);
 
-            $opname = StokOpname::create($data);
+            $this->simpanItemDraft($opname, $data['items']);
+            $opname->load('items');
+            Audit::log($userId, 'opname.create', 'StokOpname', $opname->id, null, $opname->toArray(), 'Membuat draft stok opname');
 
-            foreach ($data['items'] as $item) {
-                $bahan = Bahan::findOrFail($item['bahan_id']);
-                $selisih = $item['stok_fisik'] - $bahan->stok;
-
-                if ($selisih != 0 && empty($item['alasan'])) {
-                    throw new BusinessRuleException("Alasan wajib diisi karena ada selisih pada bahan: {$bahan->nama}", 'ALASAN_WAJIB', 422);
-                }
-
-                StokOpnameItem::create([
-                    'opname_id' => $opname->id,
-                    'bahan_id' => $bahan->id,
-                    'stok_sistem' => $bahan->stok,
-                    'stok_fisik' => $item['stok_fisik'],
-                    'selisih' => $selisih,
-                    'alasan' => $item['alasan'] ?? null,
-                ]);
-            }
-
-            if (class_exists(Audit::class)) {
-                Audit::log($userId, 'opname.create', 'StokOpname', $opname->id, null, $opname->toArray(), 'Membuat draft stok opname');
-            }
-
-            return $opname->load('items');
+            return $opname;
         });
+    }
+
+    /** Mengubah hanya dokumen draft milik pengguna (Admin dapat mengelola semua draft). */
+    public function update(int $id, array $data, int $userId): StokOpname
+    {
+        return DB::transaction(function () use ($id, $data, $userId) {
+            $opname = StokOpname::with('items')->whereKey($id)->lockForUpdate()->firstOrFail();
+
+            if ($this->statusValue($opname->status) !== 'draft') {
+                throw new BusinessRuleException('Hanya draft stok opname yang dapat diubah.', 'STATUS_TIDAK_VALID', 409);
+            }
+
+            $user = User::findOrFail($userId);
+            if ((int) $opname->dibuat_oleh !== $userId && ! $user->hasRole('admin')) {
+                throw new BusinessRuleException('Anda hanya dapat mengubah draft opname milik sendiri.', 'TIDAK_ADA_HAK', 403);
+            }
+
+            $sebelum = $opname->toArray();
+            $opname->update([
+                'tanggal' => $data['tanggal'],
+                'catatan' => $data['catatan'] ?? null,
+            ]);
+
+            // Item draft boleh diganti seluruhnya; snapshot stok dihitung ulang saat disimpan.
+            $opname->items()->delete();
+            $this->simpanItemDraft($opname, $data['items']);
+
+            $opname->load('items');
+            Audit::log($userId, 'opname.update', 'StokOpname', $opname->id, $sebelum, $opname->toArray(), 'Memperbarui draft stok opname');
+
+            return $opname;
+        });
+    }
+
+    /** @param array<int, array<string, mixed>> $items */
+    private function simpanItemDraft(StokOpname $opname, array $items): void
+    {
+        // Urutan lock deterministik mengurangi risiko deadlock saat beberapa opname berjalan.
+        usort($items, fn (array $a, array $b) => (int) $a['bahan_id'] <=> (int) $b['bahan_id']);
+
+        foreach ($items as $item) {
+            $bahan = Bahan::whereKey($item['bahan_id'])->lockForUpdate()->firstOrFail();
+            $stokSistem = round((float) $bahan->stok, 3);
+            $stokFisik = round((float) $item['stok_fisik'], 3);
+            $selisih = round($stokFisik - $stokSistem, 3);
+            $alasan = isset($item['alasan']) ? trim((string) $item['alasan']) : null;
+
+            if ($selisih !== 0.0 && ($alasan === null || mb_strlen($alasan) < 5)) {
+                throw new BusinessRuleException("Alasan wajib diisi minimal 5 karakter karena ada selisih pada bahan: {$bahan->nama}.", 'ALASAN_WAJIB', 422);
+            }
+
+            StokOpnameItem::create([
+                'opname_id' => $opname->id,
+                'bahan_id' => $bahan->id,
+                'stok_sistem' => $stokSistem,
+                'stok_fisik' => $stokFisik,
+                'selisih' => $selisih,
+                'alasan' => $alasan,
+            ]);
+        }
     }
 
     public function ajukan(int $id, int $userId)
@@ -77,6 +121,7 @@ class OpnameService
             $sebelum = $opname->toArray();
             $opname->update(['status' => 'diajukan']);
             Audit::log($userId, 'opname.ajukan', 'StokOpname', $opname->id, $sebelum, $opname->toArray());
+            NotificationService::toRoles(['manajer'], 'Opname diajukan', "Stok opname {$opname->no_opname} menunggu persetujuan.", null, 'info', $userId);
 
             return $opname;
         });

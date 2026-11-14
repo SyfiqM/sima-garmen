@@ -145,7 +145,7 @@ class ReportService
             'qc_tersedia' => max(0, (int) $qc),
             'repair_open' => (int) $i->qty_repair_open,
             'packing_tersedia' => max(0, (int) $packing),
-            'kirim_tersedia' => max(0, (int) ($i->qty_packing - $i->qty_terkirim)),
+            'kirim_tersedia' => max(0, (int) ($i->qty_packing - $i->qty_terkirim - ($i->qty_dalam_sj_disiapkan ?? 0))),
         ];
     }
 
@@ -161,6 +161,19 @@ class ReportService
             ->join('warna as w', 'w.id', '=', 'oi.warna_id')
             ->join('ukuran as u', 'u.id', '=', 'oi.ukuran_id')
             ->whereNull('o.deleted_at');
+    }
+
+    /** Kolom counter item plus qty yang telah terikat pada SJ berstatus disiapkan. */
+    protected function kolomItem(): array
+    {
+        return array_merge(self::KOLOM_ITEM, [
+            DB::raw("(SELECT COALESCE(SUM(pi.qty), 0)
+                FROM packing_items pi
+                INNER JOIN packing pk ON pk.id = pi.packing_id
+                INNER JOIN pengiriman_koli pko ON pko.packing_id = pk.id
+                INNER JOIN pengiriman pg ON pg.id = pko.pengiriman_id
+                WHERE pi.wo_item_id = wi.id AND pg.status = 'disiapkan') AS qty_dalam_sj_disiapkan"),
+        ]);
     }
 
     /** Order berstatus terkirim yang pengiriman terakhirnya jatuh di periode. */
@@ -351,7 +364,7 @@ class ReportService
             ->map(fn ($r) => $this->barisOrderRingkas($r, $hariIni))->values()->all();
 
         // Progres dan WIP dari item WO aktif
-        $items = $this->itemQuery()->where('wo.status', 'aktif')->get(self::KOLOM_ITEM);
+        $items = $this->itemQuery()->where('wo.status', 'aktif')->get($this->kolomItem());
         $totalOrder = $items->sum('qty_order');
         $cuttingTotal = $items->sum('qty_cutting') + $items->sum('qty_cutting_reject');
 
@@ -595,7 +608,7 @@ class ReportService
             })
             ->where('wo.status', 'aktif')
             ->where('wt.status', '!=', 'selesai')
-            ->get(array_merge(self::KOLOM_ITEM, ['wo.no_wo', 'o.no_order', 'o.deadline', 'o.prioritas', 'p.nama as pelanggan']));
+            ->get(array_merge($this->kolomItem(), ['wo.no_wo', 'o.no_order', 'o.deadline', 'o.prioritas', 'p.nama as pelanggan']));
 
         $antrean = $items->groupBy('wo_id')->map(function (Collection $g) use ($kunci) {
             $f = $g->first();
@@ -683,7 +696,7 @@ class ReportService
 
         $items = $this->itemQuery()
             ->where('wo.status', 'aktif')
-            ->get(array_merge(self::KOLOM_ITEM, ['wo.no_wo', 'o.no_order', 'o.deadline', 'p.nama as pelanggan']));
+            ->get(array_merge($this->kolomItem(), ['wo.no_wo', 'o.no_order', 'o.deadline', 'p.nama as pelanggan']));
 
         $antrean = $items->groupBy('wo_id')->map(function (Collection $g) {
             $f = $g->first();
@@ -951,7 +964,7 @@ class ReportService
         }
 
         $rows = $q->orderBy('o.deadline')->orderBy('wo.id')->orderBy('wi.id')->limit(self::MAKS_BARIS)
-            ->get(array_merge(self::KOLOM_ITEM, [
+            ->get(array_merge($this->kolomItem(), [
                 'wo.no_wo', 'o.no_order', 'o.deadline', 'p.nama as pelanggan',
                 'pr.nama as produk', 'w.nama as warna', 'u.kode as ukuran',
             ]));
@@ -1086,7 +1099,7 @@ class ReportService
     {
         $items = $this->itemQuery()
             ->where('wo.status', 'aktif')
-            ->get(array_merge(self::KOLOM_ITEM, ['wo.no_wo', 'o.no_order', 'o.deadline', 'p.nama as pelanggan']));
+            ->get(array_merge($this->kolomItem(), ['wo.no_wo', 'o.no_order', 'o.deadline', 'p.nama as pelanggan']));
 
         $baris = $items->groupBy('wo_id')->map(function (Collection $g) {
             $f = $g->first();

@@ -28,6 +28,13 @@ class MaterialIssueService
             $tipe = $data['tipe'];
             $items = $data['items'];
             $perluPersetujuan = false;
+
+            // Bagian 6.2 rancangan: pengeluaran hanya untuk WO siap_produksi/produksi. Tanpa ini order
+            // menunggu_bahan bisa mengeluarkan bahan lalu masih bisa dibatalkan/direvisi (melanggar 4.3).
+            if ($tipe === 'keluar' && ! in_array($workOrder->order()->firstOrFail()->status->value, ['siap_produksi', 'produksi'], true)) {
+                throw new BusinessRuleException('Pengeluaran bahan hanya untuk order berstatus siap produksi atau produksi.', 'STATUS_TIDAK_VALID', 422);
+            }
+
             $alasanDokumen = $data['alasan_lebih'] ?? collect($items)->pluck('alasan_lebih')->first(fn ($alasan) => is_string($alasan) && trim($alasan) !== '');
 
             foreach ($items as $item) {
@@ -77,6 +84,17 @@ class MaterialIssueService
 
             if (class_exists(Audit::class)) {
                 Audit::log($userId, 'pengeluaran.create', 'PengeluaranBahan', $dokumen->id, null, $dokumen->toArray(), $alasanDokumen);
+            }
+
+            if ($perluPersetujuan) {
+                NotificationService::toRoles(
+                    ['manajer'],
+                    'Pengeluaran butuh persetujuan',
+                    "Pengeluaran {$dokumen->no_pb} untuk {$workOrder->no_wo} melebihi reservasi dan menunggu persetujuan.",
+                    null,
+                    'peringatan',
+                    $userId,
+                );
             }
 
             return $dokumen->load('pengeluaranBahanItems.bahan', 'tahap', 'wo');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Exceptions\BusinessRuleException;
+use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\OrderRequest;
 use App\Models\Bahan;
@@ -29,25 +30,61 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         $this->authorizeRead($request);
-        $query = Order::with('pelanggan');
 
-        if ($request->status) {
-            $query->where('status', $request->status);
-        }
-        if ($request->pelanggan_id) {
-            $query->where('pelanggan_id', $request->pelanggan_id);
-        }
-        if ($request->prioritas) {
-            $query->where('prioritas', $request->prioritas);
+        $statusValues = array_map(fn (OrderStatus $status) => $status->value, OrderStatus::cases());
+        $filter = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'string', 'in:'.implode(',', $statusValues)],
+            'pelanggan_id' => ['nullable', 'integer', 'exists:pelanggan,id'],
+            'prioritas' => ['nullable', 'in:normal,tinggi,urgent'],
+            'tgl_dari' => ['nullable', 'date'],
+            'tgl_sampai' => ['nullable', 'date', 'after_or_equal:tgl_dari'],
+            'terlambat' => ['sometimes', 'boolean'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'sort' => ['nullable', 'string', 'in:created_at,-created_at,deadline,-deadline,tgl_order,-tgl_order,no_order,-no_order'],
+        ]);
+
+        $query = Order::query()->with('pelanggan');
+
+        if (! empty($filter['search'])) {
+            $search = trim($filter['search']);
+            $query->where(function ($q) use ($search) {
+                $q->where('no_order', 'like', "%{$search}%")
+                    ->orWhereHas('pelanggan', fn ($customer) => $customer->where('nama', 'like', "%{$search}%"));
+            });
         }
 
-        $query->orderBy('created_at', 'desc');
+        $query
+            ->when($filter['status'] ?? null, fn ($q, $value) => $q->where('status', $value))
+            ->when($filter['pelanggan_id'] ?? null, fn ($q, $value) => $q->where('pelanggan_id', $value))
+            ->when($filter['prioritas'] ?? null, fn ($q, $value) => $q->where('prioritas', $value))
+            ->when($filter['tgl_dari'] ?? null, fn ($q, $value) => $q->whereDate('tgl_order', '>=', $value))
+            ->when($filter['tgl_sampai'] ?? null, fn ($q, $value) => $q->whereDate('tgl_order', '<=', $value));
 
-        return response()->json($query->paginate($request->per_page ?? 25));
+        if (array_key_exists('terlambat', $filter)) {
+            $hariIni = today()->toDateString();
+            $query->where(function ($q) use ($filter, $hariIni) {
+                if ((bool) $filter['terlambat']) {
+                    $q->whereDate('deadline', '<', $hariIni)->where('status', '!=', OrderStatus::Terkirim->value);
+                } else {
+                    $q->whereDate('deadline', '>=', $hariIni)->orWhere('status', OrderStatus::Terkirim->value);
+                }
+            });
+        }
+
+        $sort = $filter['sort'] ?? '-created_at';
+        $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
+        $column = ltrim($sort, '-');
+
+        return response()->json(
+            $query->orderBy($column, $direction)->orderBy('id', 'desc')->paginate((int) ($filter['per_page'] ?? 25))
+        );
     }
 
     public function store(OrderRequest $request)
     {
+        $data = $request->validated();
+        $data['prioritas'] = $data['prioritas'] ?? 'normal';
         $order = $this->service->store($request->validated(), $request->user()->id);
 
         return response()->json(['data' => $order], 201);

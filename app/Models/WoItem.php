@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class WoItem extends Model
 {
@@ -30,9 +31,10 @@ class WoItem extends Model
         'qty_terkirim',
     ];
 
-    protected $casts = [
+    /** Alias agregat untuk qty koli yang masih berada di SJ berstatus disiapkan. */
+    protected $hidden = ['qty_dalam_sj_disiapkan'];
 
-    ];
+    protected $casts = [];
 
     // Rumus ketersediaan antar tahap (bagian 4.8 dokumen rancangan)
 
@@ -63,7 +65,20 @@ class WoItem extends Model
 
     public function getKirimTersediaAttribute(): int
     {
-        return $this->qty_packing - $this->qty_terkirim;
+        // Rancangan 4.8: qty packing - qty terkirim - qty pada SJ yang masih disiapkan.
+        // Query fallback menjaga accessor tetap benar ketika dipakai di luar query detail WO.
+        $qtyDisiapkan = $this->getAttribute('qty_dalam_sj_disiapkan');
+        if ($qtyDisiapkan === null) {
+            $qtyDisiapkan = DB::table('packing_items as pi')
+                ->join('packing as pk', 'pk.id', '=', 'pi.packing_id')
+                ->join('pengiriman_koli as pko', 'pko.packing_id', '=', 'pk.id')
+                ->join('pengiriman as pg', 'pg.id', '=', 'pko.pengiriman_id')
+                ->where('pi.wo_item_id', $this->id)
+                ->where('pg.status', 'disiapkan')
+                ->sum('pi.qty');
+        }
+
+        return max(0, (int) $this->qty_packing - (int) $this->qty_terkirim - (int) $qtyDisiapkan);
     }
 
     public function wo(): BelongsTo

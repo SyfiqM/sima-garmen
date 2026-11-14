@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Bahan;
-use App\Models\BOM;
+use App\Models\Bom;
 use App\Models\Pelanggan;
 use App\Models\Produk;
 use App\Models\Satuan;
@@ -66,7 +66,7 @@ class Batch2MasterAccessTest extends TestCase
         $bahan = Bahan::create(['kode' => 'BHN-02', 'nama' => 'Benang', 'jenis' => 'benang', 'satuan_id' => $satuan->id]);
         $produk = Produk::create(['kode' => 'PRD-02', 'nama' => 'Polo']);
         $tahap = Tahap::create(['kode' => 'cutting', 'nama' => 'Pemotongan', 'urutan' => 1]);
-        $bom = BOM::create([
+        $bom = Bom::create([
             'produk_id' => $produk->id,
             'bahan_id' => $bahan->id,
             'tahap_id' => $tahap->id,

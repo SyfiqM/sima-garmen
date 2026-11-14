@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\MaterialIssueRequest;
 use App\Models\PengeluaranBahan;
 use App\Services\MaterialIssueService;
+use App\Support\Setting;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class MaterialIssueController extends Controller
@@ -49,6 +51,30 @@ class MaterialIssueController extends Controller
         }
 
         return response()->json(['data' => $query->findOrFail($id)]);
+    }
+
+    public function cetak(Request $request, int $id)
+    {
+        abort_unless($request->user()?->hasRole('admin', 'manajer', 'gudang', 'supervisor', 'pimpinan'), 403);
+
+        $query = PengeluaranBahan::with([
+            'wo.order.pelanggan', 'tahap', 'pengeluaranBahanItems.bahan.satuan',
+            'dibuatOleh', 'disetujuiOleh', 'voidOleh',
+        ]);
+        if ($request->user()->hasRole('supervisor')) {
+            $query->where('tahap_id', $request->user()->tahap_id);
+        }
+        $dokumen = $query->findOrFail($id);
+
+        $perusahaan = [
+            'nama_perusahaan' => Setting::get('nama_perusahaan', 'SIMA Garmen'),
+            'alamat_perusahaan' => Setting::get('alamat_perusahaan', ''),
+            'telepon_perusahaan' => Setting::get('telepon_perusahaan', ''),
+        ];
+
+        return Pdf::loadView('pdf.pengeluaran-bahan', compact('dokumen', 'perusahaan'))
+            ->setPaper('a4')
+            ->download("pengeluaran-bahan-{$dokumen->no_pb}.pdf");
     }
 
     public function bahanWo(Request $request, MaterialIssueService $service)
