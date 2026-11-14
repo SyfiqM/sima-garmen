@@ -1,6 +1,7 @@
 # Catatan API SIMA Garmen
 
-Panduan ringkas untuk frontend. Rincian endpoint ada di `openapi.yaml` (144 operasi). Koleksi Postman memuat 159 request, termasuk 16 jenis laporan dengan URL konkret.
+Panduan ringkas untuk frontend dan integrasi API SIMA Garmen. Dokumentasi ini mencakup backend Batch 1B sampai Batch 9.
+Rincian endpoint ada di `openapi.yaml` (144 operasi HTTP). Koleksi Postman memuat 159 request, termasuk 16 jenis laporan dengan URL konkret.
 
 - Base URL lokal: `http://127.0.0.1:8000/api/v1`
 - Autentikasi: `Authorization: Bearer <token>` (Sanctum). Endpoint publik: `POST /auth/login`, `GET /enum`, `GET /pengaturan-umum`.
@@ -164,7 +165,7 @@ Hal-hal berikut berbeda dari rencana di dokumen langkah dan perlu diperhatikan f
 4. `PUT` dan `PATCH` sama-sama tersedia untuk update resource `bahan`, `produk`, `pengguna`, `order`, `po`, dan `opname` karena memakai `Route::apiResource`. Payload dan aturan validasinya sama.
 5. `PUT` dan `PATCH /opname/{id}` hanya dapat mengubah draft milik pembuat atau Admin. Snapshot stok sistem dan selisih dihitung ulang saat draft disimpan. Perubahan BOM, termasuk salin BOM, dicatat pada audit log.
 
-## 9. Perubahan sejak versi sebelumnya (Batch 5 ke Batch 7)
+## 9. Perubahan Batch 6 dan Batch 7
 
 - Baru (Batch 6): `qc/antrean`, `qc/inspeksi`, `qc/inspeksi/{id}/void`, `repair`, `repair/{id}/selesai`, `packing`, `packing/{id}`, `packing/{id}/void`, `packing/{id}/label`, `work-order` (daftar dan detail), `work-order/{id}/tutup-kurang`.
 - Baru (Batch 7): `order/{id}/koli-tersedia`, `pengiriman` (daftar, buat, detail), `pengiriman/{id}/kirim`, `/diterima`, `/batal`, `/cetak`, `/bukti`.
@@ -191,7 +192,38 @@ Hak akses: admin, manajer, pimpinan semua (audit-log hanya admin dan manajer); s
 
 Definisi angka: kekurangan (progres-wo) = max(0, qty_order - lolos QC); kelebihan = max(0, lolos QC - qty_order); reject rate QC memakai hasil = qty lolos; on-time delivery memakai tanggal kirim terakhir (SJ dikirim/diterima) <= deadline; laporan progres-wo dan pemakaian-bahan difilter menurut `tgl_order`.
 
-## 11. Akun demo, seeder, dan persiapan lokal
+## 11. Penyempurnaan akhir (Batch 9)
+
+Batch 9 menyelesaikan hardening, audit, pemeriksaan integritas, notifikasi, data demo, dan validasi backend. Penyempurnaan yang berdampak pada integrasi API meliputi:
+
+- **Filter daftar order:** `GET /order` mendukung `tgl_dari`, `tgl_sampai`, `terlambat=1|0`, dan `sort` yang dibatasi ke kolom yang diizinkan. Gunakan `per_page` sesuai batas endpoint.
+- **Audit BOM:** pembuatan, perubahan, penghapusan, dan penyalinan BOM dicatat pada audit log.
+- **Detail Work Order sesuai role:** Supervisor hanya menerima data tahapnya; Supervisor Finishing juga dapat menerima data packing. Counter tahap lain/hilir tidak dikirim kepada Supervisor yang tidak berwenang.
+- **Ketersediaan koli:** `kirim_tersedia` memperhitungkan koli yang sudah terikat pada surat jalan berstatus `disiapkan`, sehingga koli tersebut tidak dapat dipilih lagi pada surat jalan lain.
+- **PDF transaksi:** tersedia PDF untuk detail Work Order, PO, penerimaan bahan, dan pengeluaran bahan melalui endpoint yang tercantum pada bagian 7.
+- **Notifikasi deadline:** alert deadline ditujukan kepada seluruh user aktif ber-role Manajer dan Staf Order sesuai aturan notifikasi.
+- **Notifikasi stok minimum:** kondisi alert mengikuti aturan `stok tersedia <= stok minimum`.
+- **Seeder demo dan performa:** `DemoDataSeeder` menyiapkan data demo untuk pengembangan. `PerformanceSeeder` ditujukan untuk database lokal khusus dan membuat 500 order/WO/item WO serta 50.000 log produksi aktif. Jangan jalankan seeder demo/performa pada produksi.
+- **Pemeriksaan integritas:** jalankan `php artisan sima:check-integrity` dari terminal. Command memeriksa konsistensi stok, reservasi, dan counter; command ini bukan endpoint HTTP.
+- **Penjadwalan:** command alert dan pemeriksaan terjadwal harus dijalankan melalui scheduler Laravel sesuai konfigurasi deployment.
+
+### Validasi backend yang tercatat
+
+Pada pengujian di lingkungan pengembang, `php artisan test` menghasilkan **196 test lulus dan 1.970 assertions**, termasuk seluruh skenario otomatis `Batch9UatScenarioTest` (skenario 01–22, dengan variasi tambahan 06b dan 15b). Pemeriksaan manual `php artisan sima:check-integrity` juga dilaporkan menghasilkan kondisi bersih.
+
+Hasil automated test tersebut membuktikan test suite yang tersedia lulus pada lingkungan pengujian. UAT manual oleh pengguna, konfigurasi produksi, backup, queue worker, dan scheduler tetap perlu diverifikasi pada lingkungan deployment.
+
+### Perintah verifikasi
+
+```bash
+php artisan test
+php artisan sima:check-integrity
+php artisan route:list --path=api
+```
+
+Jalankan perintah pada database pengujian/pengembangan yang sesuai. Jangan menggunakan `migrate:fresh` pada database operasional atau produksi.
+
+## 12. Akun demo, seeder, dan persiapan lokal
 
 ### Akun
 
@@ -222,7 +254,7 @@ Perintah pertama **menghapus seluruh tabel dan data** sebelum menjalankan seeder
 
 ### Environment dan Postman
 
-1. Salin `.env.example` menjadi `.env`, sesuaikan koneksi MySQL lokal, lalu jalankan `php artisan key:generate`.
+1. Salin `.env.example` menjadi `.env`. Konfigurasi contoh menggunakan MySQL 8 lokal (`sima_garmen`, user `root`); sesuaikan `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, dan `DB_PASSWORD` dengan lingkungan Anda, lalu jalankan `php artisan key:generate`.
 2. Project saat ini mensyaratkan **PHP 8.3 atau lebih baru** (`composer.json`) dan rancangan database menargetkan **MySQL 8**.
 3. `FILESYSTEM_DISK=local` mengarah ke `storage/app/private`; jangan ubah ke disk `public` untuk lampiran order atau bukti terima.
 4. Sesuaikan `allowed_origins` di `config/cors.php` dengan alamat frontend. Untuk produksi, gunakan hanya origin HTTPS frontend yang benar; jangan gunakan wildcard.

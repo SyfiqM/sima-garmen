@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "SIMA Garmen API",
-    "description": "Koleksi lengkap Batch 1B sampai Batch 8 (159 request). OpenAPI mendeskripsikan 144 operasi termasuk PUT dan PATCH pada resource Laravel; koleksi ini juga memuat 16 jenis laporan dengan URL konkret. Jalankan request Login terlebih dahulu; token disimpan otomatis ke environment. Request pembuatan order, PO, penerimaan, opname, pengeluaran, QC, packing, dan pengiriman menyimpan ID hasilnya ke environment.",
+    "description": "Koleksi API SIMA Garmen Batch 1B sampai Batch 9 (159 request). OpenAPI mendeskripsikan 144 operasi HTTP termasuk PUT dan PATCH pada resource bahan, produk, pengguna, order, PO, dan opname. Koleksi ini juga memuat 16 jenis laporan dengan URL konkret. Jalankan request Login terlebih dahulu; token disimpan otomatis ke environment. Request pembuatan order, PO, penerimaan, opname, pengeluaran, QC, packing, dan pengiriman menyimpan ID hasilnya ke environment. Untuk pemeriksaan integritas data gunakan perintah Artisan php artisan sima:check-integrity di terminal; perintah tersebut bukan request API.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {

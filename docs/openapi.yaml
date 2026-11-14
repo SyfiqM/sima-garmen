@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: SIMA Garmen API
   version: 1.1.0
-  description: 'API backend SIMA Garmen, Batch 1B sampai Batch 8.
+  description: 'API backend SIMA Garmen, mencakup implementasi Batch 1B sampai Batch 9 (rilis backend v1.0.0).
 
 
     **Format respons**
@@ -19,7 +19,10 @@ info:
     } }`.
 
     - Unduhan PDF dan berkas memerlukan header Authorization, jadi unduh sebagai blob.
-    - Update pada resource bahan, produk, pengguna, order, dan PO menerima PUT maupun PATCH.
+    - Update pada resource bahan, produk, pengguna, order, PO, dan opname menerima PUT maupun PATCH.
+    - Cakupan Batch 9 mencakup penyempurnaan audit log, filter order, pembatasan data Work Order per role,
+      ketersediaan koli untuk pengiriman, PDF transaksi, notifikasi deadline, dan dukungan pemeriksaan integritas.
+    - Pemeriksaan integritas dijalankan melalui perintah Artisan `php artisan sima:check-integrity`, bukan endpoint API.
 
     '
 servers:
@@ -34,7 +37,7 @@ tags:
   - name: Master Data
     description: Master data, bahan, produk, dan BOM (Batch 2).
   - name: Pengguna dan Pengaturan
-    description: Pengguna, pengaturan sistem, dan audit log (Batch 2).
+    description: Pengguna, pengaturan sistem, dan audit log (fondasi Batch 2 serta penyempurnaan Batch 9).
   - name: Order
     description: Order, persetujuan, revisi, dan lampiran (Batch 3).
   - name: Work Order
@@ -46,7 +49,7 @@ tags:
   - name: QC, Repair, dan Packing
     description: Inspeksi QC, repair, dan koli (Batch 6).
   - name: Dashboard dan Laporan
-    description: Dashboard per role dan 16 laporan (Batch 8).
+    description: Dashboard per role dan 16 laporan (Batch 8), termasuk penyempurnaan filter dan konsistensi data Batch 9.
   - name: Pengiriman
     description: Surat jalan dan konfirmasi penerimaan (Batch 7).
 paths:
